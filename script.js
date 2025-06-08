@@ -166,46 +166,61 @@ const GoogleSheetsSync = {
     }
 };
 
-// Map initialization
-const map = L.map('map').setView([31.5, 34.75], 8);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors'
-}).addTo(map);
+// Check if L (Leaflet) object is available before initializing the map
+let map;
+let markers;
+if (typeof L !== 'undefined') {
+    // Map initialization
+    map = L.map('map').setView([31.5, 34.75], 8);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
 
-// Create a Marker Cluster Group
-const markers = L.markerClusterGroup();
+    // Create a Marker Cluster Group
+    markers = L.markerClusterGroup();
+} else {
+    console.error("Leaflet library (L) is not loaded. Map cannot be initialized.");
+    // Optionally, display a message to the user that the map cannot load
+    document.getElementById('map').innerHTML = '<div style="text-align: center; padding: 20px; color: #ef4444;">שגיאה: המפה לא הצליחה להיטען. אנא נסה לרענן את העמוד.</div>';
+}
 
 // Custom marker icon
-const createMarkerIcon = () => L.divIcon({
-    className: 'modern-marker',
-    html: `
-        <div style="
-            width: 36px;
-            height: 36px;
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            border-radius: 50% 50% 50% 0;
-            transform: rotate(-45deg);
-            border: 3px solid white;
-            box-shadow: 0 6px 16px rgba(99, 102, 241, 0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-        ">
+const createMarkerIcon = () => {
+    // Ensure L is defined before trying to use L.divIcon
+    if (typeof L === 'undefined') return; 
+
+    return L.divIcon({
+        className: 'modern-marker',
+        html: `
             <div style="
-                width: 16px;
-                height: 16px;
-                background: white;
-                border-radius: 50%;
-                transform: rotate(45deg);
-                box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
-            "></div>
-        </div>
-    `,
-    iconSize: [36, 36],
-    iconAnchor: [18, 36],
-    popupAnchor: [0, -36]
-});
+                width: 36px;
+                height: 36px;
+                background: linear-gradient(135deg, #6366f1, #8b5cf6);
+                border-radius: 50% 50% 50% 0;
+                transform: rotate(-45deg);
+                border: 3px solid white;
+                box-shadow: 0 6px 16px rgba(99, 102, 241, 0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                position: relative;
+            ">
+                <div style="
+                    width: 16px;
+                    height: 16px;
+                    background: white;
+                    border-radius: 50%;
+                    transform: rotate(45deg);
+                    box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+                "></div>
+            </div>
+        `,
+        iconSize: [36, 36],
+        iconAnchor: [18, 36],
+        popupAnchor: [0, -36]
+    });
+};
+
 
 // Helper function to calculate distance
 function distance(lat1, lon1, lat2, lon2) {
@@ -230,6 +245,12 @@ function updateParticipantCount() {
 function renderMarkers(list = participants) {
     console.log("🗺️ Displaying markers on the map...");
     
+    // Ensure map and markers objects are initialized before proceeding
+    if (typeof map === 'undefined' || typeof markers === 'undefined' || typeof L === 'undefined') {
+        console.error("Map or MarkerClusterGroup is not initialized. Cannot render markers.");
+        return;
+    }
+
     // Clear existing markers from the marker group
     markers.clearLayers();
     
