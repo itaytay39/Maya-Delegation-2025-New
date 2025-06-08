@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מפת משתתפים - מאיה משלחת לאוגנדה 2025</title>
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+    <!-- Link to your custom stylesheet with Material Design 3 adaptations -->
+    <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+    <div id="app-container">
+        <header class="header">
+            <button id="admin-login-btn" class="admin-fab" title="כניסת אדמין">
+                <span class="material-symbols-outlined">admin_panel_settings</span>
+            </button>
+            
+            <button id="admin-logout-btn" class="admin-fab logout-btn" title="התנתק" style="display: none;">
+                <span class="material-symbols-outlined">logout</span>
+            </button>
+            
+            <div class="logo-container">
+                <div class="logo-maya">
+                    <img src="logo.jpg" alt="מאיה משלחת לאוגנדה">
+                </div>
+            </div>
+            <div class="title">מאיה - משלחת לאוגנדה</div>
+            <div class="subtitle">מחברים בין חברים</div>
+        </header>
+
+        <div class="search-container">
+            <div class="search-box">
+                <span class="material-symbols-outlined search-icon">search</span>
+                <input type="text" class="search-input" placeholder="חיפוש משתתפים" id="search-input">
+            </div>
+        </div>
+
+        <div id="admin-controls" class="admin-controls" style="display: none;">
+            <button id="import-btn" class="admin-control-btn">
+                <span class="material-symbols-outlined">upload_file</span>
+                יבוא מ-Excel
+            </button>
+            <button id="export-btn" class="admin-control-btn">
+                <span class="material-symbols-outlined">download</span>
+                יצוא ל-Excel
+            </button>
+            <button id="sync-btn" class="admin-control-btn">
+                <span class="material-symbols-outlined">sync</span>
+                סנכרון מהגיליון
+            </button>
+        </div>
+
+        <div class="map-container">
+            <div id="map"></div>
+            <div class="participant-count">
+                <span id="participant-count">טוען נתונים מגוגל שיטס...</span>
+            </div>
+            <!-- "הוסף משתמש" כפתור צף מותאם ל-Material Design 3 -->
+            <button id="add-user-btn" class="fab add-fab" style="display: none;" title="הוסף משתמש">
+                <span class="material-symbols-outlined">add</span>
+            </button>
+            <!-- "חזור לגודל רגיל במפה" כפתור צף מותאם ל-Material Design 3 -->
+            <button id="reset-map-btn" class="fab reset-fab" title="חזור לגודל רגיל במפה">
+                <span class="material-symbols-outlined">my_location</span>
+            </button>
+        </div>
+
+        <div id="sync-status" class="sync-status">
+            <span class="material-symbols-outlined sync-icon">cloud_sync</span>
+            <span id="sync-text">מתחבר לגוגל שיטס...</span>
+        </div>
+    </div>
+
+    <input type="file" id="file-input" accept=".csv,.xlsx,.xls" style="display: none;">
+
+    <!-- Admin Login Modal -->
+    <div id="admin-login-modal" class="modal" hidden>
+        <div class="modal-content">
+            <h3>🔐 כניסת מנהל</h3>
+            <div class="form-group">
+                <input type="password" class="form-input" placeholder="סיסמה" id="admin-password">
+            </div>
+            <div class="button-group">
+                <button class="btn btn-primary" id="admin-login">
+                    <span class="material-symbols-outlined">login</span>
+                    כניסה
+                </button>
+                <button class="btn btn-secondary" id="admin-cancel">
+                    <span class="material-symbols-outlined">close</span>
+                    ביטול
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Form Modal -->
+    <div id="user-form-modal" class="modal" hidden>
+        <div class="modal-content">
+            <h3 id="user-form-title">➕ הוסף משתתף</h3>
+            <div class="form-group">
+                <input type="text" class="form-input" placeholder="שם פרטי" id="user-first-name">
+            </div>
+            <div class="form-group">
+                <input type="text" class="form-input" placeholder="שם משפחה" id="user-last-name">
+            </div>
+            <div class="form-group">
+                <input type="text" class="form-input" placeholder="עיר" id="user-city">
+            </div>
+            <div class="form-group">
+                <input type="tel" class="form-input" placeholder="טלפון" id="user-phone">
+            </div>
+            <div class="form-group">
+                <input type="tel" class="form-input" placeholder="וואטסאפ (לא חובה)" id="user-whatsapp">
+            </div>
+            <div class="button-group">
+                <button class="btn btn-primary" id="user-save">
+                    <span class="material-symbols-outlined">save</span>
+                    שמירה
+                </button>
+                <button class="btn btn-secondary" id="user-cancel">
+                    <span class="material-symbols-outlined">close</span>
+                    ביטול
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NEW: Participant Details Bottom Sheet - replaces Leaflet popup for better mobile UX -->
+    <div id="participant-details-bottom-sheet" class="bottom-sheet" hidden>
+        <div class="bottom-sheet-content">
+            <button class="bottom-sheet-close-btn" title="סגור">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+            <div id="bottom-sheet-details">
+                <!-- Participant details will be dynamically loaded here by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container" class="toast-container"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+    <script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Link to your custom script -->
+    <script src="./script.js"></script>
+</body>
+</html>
