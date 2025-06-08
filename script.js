@@ -545,9 +545,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Map initialization (moved inside DOMContentLoaded)
     map = L.map('map').setView([31.5, 34.75], 8);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
+
+    // NEW: Initialize Google Mutant with your API key
+    const googleLayer = L.gridLayer.googleMutant({
+        type: 'roadmap', // You can change this to 'satellite', 'terrain', or 'hybrid'
+        maxZoom: 20,
+        attribution: '© Google Maps' // Attribution to display on the map
+    });
+    googleLayer.addTo(map); // Add the Google Maps layer to the map
 
     markers = L.markerClusterGroup(); // Initialize markers group here
 
@@ -728,3 +733,5 @@ window.addEventListener('beforeunload', () => {
 
 // This is the very last line of the script. Do NOT cut this off.
 console.log("✅ Maya App connected to Google Sheets ready for use!");
+
+// --- END OF script.js FILE ---

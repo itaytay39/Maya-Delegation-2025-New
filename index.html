@@ -9,8 +9,8 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
-    <!-- Link to your custom stylesheet with Material Design 3 adaptations -->
     <link rel="stylesheet" href="./style.css">
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCEo0QBID_qOEivVCmbcg8Z_YYY4cIjwj0"></script>
 </head>
 <body>
     <div id="app-container">
@@ -59,29 +59,21 @@
             <div class="participant-count">
                 <span id="participant-count">טוען נתונים מגוגל שיטס...</span>
             </div>
-            <!-- "הוסף משתמש" כפתור צף מותאם ל-Material Design 3 -->
             <button id="add-user-btn" class="fab add-fab" style="display: none;" title="הוסף משתמש">
                 <span class="material-symbols-outlined">add</span>
             </button>
-            <!-- "חזור לגודל רגיל במפה" כפתור צף מותאם ל-Material Design 3 -->
             <button id="reset-map-btn" class="fab reset-fab" title="חזור לגודל רגיל במפה">
                 <span class="material-symbols-outlined">my_location</span>
             </button>
         </div>
 
-        <!-- The sync status display element has been removed -->
-        <!-- <div id="sync-status" class="sync-status"> -->
-        <!--     <span class="material-symbols-outlined sync-icon">cloud_sync</span> -->
-        <!--     <span id="sync-text">מתחבר לגוגל שיטס...</span> -->
-        <!-- </div> -->
-    </div>
+        </div>
 
     <input type="file" id="file-input" accept=".csv,.xlsx,.xls" style="display: none;">
 
-    <!-- Admin Login Modal -->
     <div id="admin-login-modal" class="modal" hidden>
         <div class="modal-content">
-            <h3>� כניסת מנהל</h3>
+            <h3>🔑 כניסת מנהל</h3>
             <div class="form-group">
                 <input type="password" class="form-input" placeholder="סיסמה" id="admin-password">
             </div>
@@ -98,7 +90,6 @@
         </div>
     </div>
 
-    <!-- User Form Modal -->
     <div id="user-form-modal" class="modal" hidden>
         <div class="modal-content">
             <h3 id="user-form-title">➕ הוסף משתתף</h3>
@@ -130,15 +121,13 @@
         </div>
     </div>
 
-    <!-- NEW: Participant Details Bottom Sheet - replaces Leaflet popup for better mobile UX -->
     <div id="participant-details-bottom-sheet" class="bottom-sheet" hidden>
         <div class="bottom-sheet-content">
             <button class="bottom-sheet-close-btn" title="סגור">
                 <span class="material-symbols-outlined">close</span>
             </button>
             <div id="bottom-sheet-details">
-                <!-- Participant details will be dynamically loaded here by JavaScript -->
-            </div>
+                </div>
         </div>
     </div>
 
@@ -146,8 +135,7 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-    <script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <!-- Link to your custom script -->
+    <script src="https://unpkg.com/leaflet.googlemutant@0.10.0/Leaflet.GoogleMutant.js"></script> <script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="./script.js"></script>
 </body>
 </html>
