@@ -37,16 +37,17 @@ const ToastManager = {
     }
 };
 
-// Sync status system
+// Sync status system (updated to not fail if element is missing)
 const SyncStatus = {
-    element: null,
+    element: null, // Initialized to null
     
     init() {
+        // Try to get the element, but don't fail if it doesn't exist
         this.element = document.getElementById('sync-text');
     },
     
     update(message, isError = false) {
-        if (this.element) {
+        if (this.element) { // Only update if the element actually exists
             this.element.textContent = message;
             const icon = document.querySelector('.sync-icon');
             if (icon) {
@@ -61,7 +62,7 @@ const GoogleSheetsSync = {
     async loadParticipants() {
         try {
             console.log("📡 Loading data from Google Sheets...");
-            SyncStatus.update("Loading data...");
+            // SyncStatus.update("Loading data..."); // Removed visual update here
             
             const response = await fetch(SHEET_CONFIG.participantsUrl);
             if (!response.ok) throw new Error('Network response was not ok');
@@ -96,14 +97,14 @@ const GoogleSheetsSync = {
                 .filter(p => p.lat && p.lon && !isNaN(p.lat) && !isNaN(p.lon)); // Filter invalid data
             
             console.log(`✅ Loaded ${participants.length} participants from the sheet`);
-            SyncStatus.update(`Loaded ${participants.length} participants`);
+            // SyncStatus.update(`Loaded ${participants.length} participants`); // Removed visual update here
             ToastManager.show(`Loaded ${participants.length} participants from the sheet`);
             
             this.updateUI();
             
         } catch (error) {
             console.error("❌ Error loading data:", error);
-            SyncStatus.update("Error loading data", true);
+            // SyncStatus.update("Error loading data", true); // Removed visual update here
             ToastManager.show('Error loading data from the sheet', 'error');
         }
     },
@@ -166,61 +167,41 @@ const GoogleSheetsSync = {
     }
 };
 
-// Check if L (Leaflet) object is available before initializing the map
+// Map variables declared globally, but initialized inside DOMContentLoaded
 let map;
 let markers;
-if (typeof L !== 'undefined') {
-    // Map initialization
-    map = L.map('map').setView([31.5, 34.75], 8);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
-
-    // Create a Marker Cluster Group
-    markers = L.markerClusterGroup();
-} else {
-    console.error("Leaflet library (L) is not loaded. Map cannot be initialized.");
-    // Optionally, display a message to the user that the map cannot load
-    document.getElementById('map').innerHTML = '<div style="text-align: center; padding: 20px; color: #ef4444;">שגיאה: המפה לא הצליחה להיטען. אנא נסה לרענן את העמוד.</div>';
-}
 
 // Custom marker icon
-const createMarkerIcon = () => {
-    // Ensure L is defined before trying to use L.divIcon
-    if (typeof L === 'undefined') return; 
-
-    return L.divIcon({
-        className: 'modern-marker',
-        html: `
+const createMarkerIcon = () => L.divIcon({
+    className: 'modern-marker',
+    html: `
+        <div style="
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            border: 3px solid white;
+            box-shadow: 0 6px 16px rgba(99, 102, 241, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        ">
             <div style="
-                width: 36px;
-                height: 36px;
-                background: linear-gradient(135deg, #6366f1, #8b5cf6);
-                border-radius: 50% 50% 50% 0;
-                transform: rotate(-45deg);
-                border: 3px solid white;
-                box-shadow: 0 6px 16px rgba(99, 102, 241, 0.5);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                position: relative;
-            ">
-                <div style="
-                    width: 16px;
-                    height: 16px;
-                    background: white;
-                    border-radius: 50%;
-                    transform: rotate(45deg);
-                    box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
-                "></div>
-            </div>
-        `,
-        iconSize: [36, 36],
-        iconAnchor: [18, 36],
-        popupAnchor: [0, -36]
-    });
-};
-
+                width: 16px;
+                height: 16px;
+                background: white;
+                border-radius: 50%;
+                transform: rotate(45deg);
+                box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+            "></div>
+        </div>
+    `,
+    iconSize: [36, 36],
+    iconAnchor: [18, 36],
+    popupAnchor: [0, -36]
+});
 
 // Helper function to calculate distance
 function distance(lat1, lon1, lat2, lon2) {
@@ -245,12 +226,6 @@ function updateParticipantCount() {
 function renderMarkers(list = participants) {
     console.log("🗺️ Displaying markers on the map...");
     
-    // Ensure map and markers objects are initialized before proceeding
-    if (typeof map === 'undefined' || typeof markers === 'undefined' || typeof L === 'undefined') {
-        console.error("Map or MarkerClusterGroup is not initialized. Cannot render markers.");
-        return;
-    }
-
     // Clear existing markers from the marker group
     markers.clearLayers();
     
@@ -423,7 +398,7 @@ window.deleteUser = function(idx) {
 
 window.suggestCarpool = function(name, phone) {
     console.log(`🚗 Suggesting carpool to: ${name}`);
-    const message = encodeURIComponent(`היי ${name}, רוצה לתאם נסיעה משותפת למשלחת מאיה לאוגנדה? 🚗✈️🇺🇬`);
+    const message = encodeURIComponent(`היי ${name}, רוצה לתאם נסיעה משותפת למשלחת מאיה לאוגנדה! 🚗✈️🇺🇬`);
     window.open(`https://wa.me/972${phone.replace(/^0/,'')}?text=${message}`, '_blank');
 };
 
@@ -482,7 +457,7 @@ async function handleImport(event) {
     }
 
     // Show loading status
-    SyncStatus.update("טוען קובץ Excel...", false);
+    // SyncStatus.update("טוען קובץ Excel...", false); // Removed visual update here
     ToastManager.show("טוען קובץ Excel...");
 
     const reader = new FileReader();
@@ -502,7 +477,7 @@ async function handleImport(event) {
 
             if (jsonData.length === 0) {
                 ToastManager.show('קובץ Excel ריק או בפורמט לא תקין.', 'error');
-                SyncStatus.update("שגיאה בייבוא קובץ", true);
+                // SyncStatus.update("שגיאה בייבוא קובץ", true); // Removed visual update here
                 return;
             }
 
@@ -523,12 +498,12 @@ async function handleImport(event) {
 
             if (participantsToImport.length === 0) {
                 ToastManager.show('לא נמצאו משתתפים חוקיים בקובץ Excel.', 'error');
-                SyncStatus.update("שגיאה בייבוא קובץ", true);
+                // SyncStatus.update("שגיאה בייבוא קובץ", true); // Removed visual update here
                 return;
             }
 
             console.log("Parsed Excel data for import:", participantsToImport);
-            SyncStatus.update("שולח נתונים לשרת...", false);
+            // SyncStatus.update("שולח נתונים לשרת...", false); // Removed visual update here
 
             // Send the parsed data to Google Apps Script with an 'import' action
             const response = await fetch(SHEET_CONFIG.appsScriptUrl, {
@@ -546,13 +521,13 @@ async function handleImport(event) {
                 await GoogleSheetsSync.loadParticipants(); // Reload map data after successful import
             } else {
                 ToastManager.show(`שגיאה בייבוא קובץ: ${result.message || 'נסה שוב.'}`, 'error');
-                SyncStatus.update("שגיאה בייבוא קובץ", true);
+                // SyncStatus.update("שגיאה בייבוא קובץ", true); // Removed visual update here
             }
 
         } catch (error) {
             console.error("❌ Error processing Excel file:", error);
             ToastManager.show('שגיאה בעיבוד קובץ Excel. ודא שהפורמט נכון.', 'error');
-            SyncStatus.update("שגיאה בעיבוד קובץ", true);
+            // SyncStatus.update("שגיאה בעיבוד קובץ", true); // Removed visual update here
         } finally {
             // Clear the file input so the same file can be selected again (important for 'change' event)
             event.target.value = ''; 
@@ -566,8 +541,16 @@ async function handleImport(event) {
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize systems
-    SyncStatus.init();
-    
+    SyncStatus.init(); // SyncStatus will still be initialized, but will not update non-existent element
+
+    // Map initialization (moved inside DOMContentLoaded)
+    map = L.map('map').setView([31.5, 34.75], 8);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    markers = L.markerClusterGroup(); // Initialize markers group here
+
     // Initial load
     GoogleSheetsSync.loadParticipants();
     GoogleSheetsSync.startAutoSync();
@@ -578,7 +561,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('admin-password').focus();
     });
     
-    // Admin logout button
     document.getElementById('admin-logout-btn').addEventListener('click', () => {
         setAdminMode(false);
     });
