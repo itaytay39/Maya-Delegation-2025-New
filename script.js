@@ -376,7 +376,7 @@ window.deleteUser = function(idx) {
     fetch(SHEET_CONFIG.appsScriptUrl, {
         method: 'POST',
         headers: {
-            'Content-Type': 'text/plain;charset=utf-8' // Apps Script expects this format
+            'Content-Type': 'application/x-www-form-urlencoded' // Apps Script expects this format
         },
         body: JSON.stringify({ action: 'delete', payload: deletePayload })
     })
@@ -726,4 +726,5 @@ window.addEventListener('beforeunload', () => {
     GoogleSheetsSync.stopAutoSync();
 });
 
+// This is the very last line of the script. Do NOT cut this off.
 console.log("✅ Maya App connected to Google Sheets ready for use!");
