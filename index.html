@@ -2,17 +2,634 @@
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>מפת משתתפים - מאיה משלחת לאוגנדה 2025</title>
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
-    <link rel="stylesheet" href="./style.css">
+    <!-- Leaflet MarkerCluster CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+    
+    <style>
+        /* style.css content - Original styles from user's provided file */
+        :root {
+            --md-primary: #6366f1;
+            --md-secondary: #8b5cf6;
+            --md-success: #10b981;
+            --md-error: #ef4444;
+            --md-warning: #f59e0b;
+            --md-surface: #ffffff;
+            --md-background: #f8fafc;
+            --md-text: #1e293b;
+            --md-border: #e2e8f0;
+            --md-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --md-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --md-radius: 24px;
+            --md-transition: 0.2s cubic-bezier(0.4,0,0.2,1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Heebo', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            direction: rtl;
+            color: var(--md-text);
+        }
+
+        #app-container {
+            max-width: 480px;
+            margin: 0 auto;
+            background: var(--md-background);
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* כותרת */
+        .header {
+            background: linear-gradient(135deg, var(--md-primary), var(--md-secondary));
+            padding: 2rem 1.5rem;
+            text-align: center;
+            color: white;
+            position: relative;
+        }
+
+        .logo-container {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .logo-maya {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            transition: transform 0.3s ease;
+            background: white;
+            padding: 5px;
+        }
+
+        .logo-maya:hover {
+            transform: scale(1.05);
+        }
+
+        .logo-maya img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+
+        .admin-fab {
+            position: absolute;
+            top: 15px;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            box-shadow: var(--md-shadow);
+            z-index: 100;
+        }
+
+        .admin-fab:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.1);
+        }
+
+        /* כפתור כניסה משמאל */
+        #admin-login-btn {
+            left: 15px;
+        }
+
+        /* כפתור יציאה מימין */
+        .logout-btn {
+            right: 15px;
+            background: rgba(255,0,0,0.3) !important;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255,0,0,0.5) !important;
+        }
+
+        .title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+
+        /* חיפוש */
+        .search-container {
+            padding: 1rem;
+            background: var(--md-surface);
+            box-shadow: var(--md-shadow);
+        }
+
+        .search-box {
+            position: relative;
+            display: flex;
+            align-items: center;
+            background: var(--md-background);
+            border-radius: var(--md-radius);
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--md-border);
+            transition: all 0.3s ease;
+        }
+
+        .search-box:focus-within {
+            border-color: var(--md-primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .search-icon {
+            color: #64748b;
+            margin-left: 0.5rem;
+        }
+
+        .search-input {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 1rem;
+            color: var(--md-text);
+            background: transparent;
+        }
+
+        /* כפתורי ניהול אדמין */
+        .admin-controls {
+            padding: 0 1rem;
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .admin-control-btn {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: none;
+            border-radius: 12px;
+            background: var(--md-primary);
+            color: white;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .admin-control-btn:hover {
+            background: #4f46e5;
+            transform: translateY(-1px);
+        }
+
+        /* מפה */
+        .map-container {
+            height: 60vh;
+            margin: 1rem;
+            border-radius: var(--md-radius);
+            overflow: hidden;
+            box-shadow: var(--md-shadow-lg);
+            position: relative;
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+
+        .participant-count {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(255,255,255,0.95);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--md-text);
+            backdrop-filter: blur(10px);
+            box-shadow: var(--md-shadow);
+        }
+
+        /* כפתורים צפים */
+        .fab {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            color: white;
+            box-shadow: var(--md-shadow-lg);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .add-fab {
+            bottom: 1rem;
+            left: 1rem;
+            background: linear-gradient(135deg, var(--md-success), #059669);
+        }
+
+        .reset-view-fab { /* New FAB for resetting map view */
+            bottom: 1rem;
+            right: 1rem; /* Positioning for the new FAB */
+            background: linear-gradient(135deg, #42a5f5, #1976d2); /* Blue gradient */
+        }
+
+        .fab:hover {
+            transform: scale(1.1);
+            box-shadow: 0 12px 35px rgba(99, 102, 241, 0.4);
+        }
+
+        /* מודלים */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(10px);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .modal[hidden] {
+            display: none !important;
+        }
+
+        .modal:not([hidden]) {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--md-surface);
+            border-radius: var(--md-radius);
+            padding: 2rem;
+            width: 100%;
+            max-width: 400px;
+            animation: modalSlideIn 0.3s ease;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(50px) scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .modal h3 {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            color: var(--md-text);
+            font-weight: 600;
+            font-size: 1.5rem;
+        }
+
+        /* טפסים */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--md-border);
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: var(--md-background);
+            font-family: 'Heebo', sans-serif;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--md-primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        /* כפתורים */
+        .button-group {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-family: 'Heebo', sans-serif;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--md-primary), var(--md-secondary));
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--md-border);
+            color: var(--md-text);
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e1;
+        }
+
+        /* עיצוב בועית Popup */
+        /* Redesigned Popup for better mobile UX */
+        .leaflet-popup-content-wrapper {
+            padding: 0 !important; /* Remove default padding */
+            border-radius: 16px !important; /* More rounded corners */
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2) !important; /* Stronger shadow */
+            background: var(--md-surface) !important;
+            /* Added margin from top to push popup slightly down from marker, if needed */
+            margin-top: 10px !important; 
+        }
+
+        .leaflet-popup-content {
+            margin: 0 !important; /* Remove default margin */
+            min-width: 260px; /* Reduced min-width */
+            max-width: 300px; /* Reduced max-width for better mobile fit */
+            font-family: 'Heebo', sans-serif;
+            direction: rtl;
+        }
+
+        .leaflet-popup-tip-container { /* Container for the tip (tail) */
+            opacity: 0.95; /* Slight transparency for glassmorphism effect */
+        }
+        .leaflet-popup-tip {
+            background: var(--md-surface) !important; /* Match popup background */
+            box-shadow: none !important; /* Remove tip shadow */
+            border-radius: 4px; /* Slight rounding for the tip */
+        }
+        .leaflet-popup-close-button {
+            top: 8px !important;
+            right: 8px !important;
+            font-size: 24px !important;
+            color: var(--md-sys-outline) !important;
+            background: none !important;
+            border-radius: 50%;
+            padding: 0;
+            width: 32px; /* Increased width for touch target */
+            height: 32px; /* Increased height for touch target */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s;
+            z-index: 10; /* Ensure it's above other elements */
+        }
+        .leaflet-popup-close-button:hover {
+            background-color: rgba(0,0,0,0.05) !important;
+        }
+        .leaflet-popup-close-button span { /* Hide default 'x' and use Material icon if needed */
+            display: none;
+        }
+        .leaflet-popup-close-button::before {
+            content: 'close'; /* Material icon for close */
+            font-family: 'Material Symbols Outlined';
+            font-size: 20px;
+            line-height: 1;
+            color: var(--md-sys-outline);
+        }
+
+        .popup-box {
+            background: var(--md-surface);
+            border-radius: var(--md-radius); /* Already handled by wrapper */
+            padding: 1rem; /* Reduced padding */
+            text-align: center;
+            /* Box-shadow handled by wrapper */
+            border: none; /* Remove inner border */
+        }
+
+        .popup-name {
+            font-size: 1.3rem; /* Slightly smaller font */
+            font-weight: 700;
+            color: var(--md-primary);
+            margin-bottom: 0.4rem; /* Reduced margin */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem; /* Reduced gap */
+        }
+
+        .popup-city {
+            font-size: 1rem; /* Slightly smaller font */
+            font-weight: 500;
+            color: var(--md-text);
+            margin-bottom: 0.4rem; /* Reduced margin */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem; /* Reduced gap */
+        }
+
+        .popup-phone {
+            font-size: 0.9rem; /* Slightly smaller font */
+            color: #64748b;
+            margin-bottom: 0.8rem; /* Reduced margin */
+            direction: ltr;
+            font-weight: 500;
+        }
+
+        .popup-btns {
+            display: grid; /* Changed to grid for better control over layout */
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); /* Adaptive columns */
+            gap: 0.5rem; /* Reduced gap */
+            justify-content: center; /* Center buttons */
+            margin-top: 0.8rem; /* Space from phone number */
+        }
+
+        .popup-btn {
+            padding: 0.6rem 0.8rem; /* Reduced padding */
+            border: none;
+            border-radius: 10px; /* Slightly smaller radius */
+            font-size: 0.9rem; /* Reduced font size */
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem; /* Reduced gap */
+            color: white !important;
+            font-family: 'Heebo', sans-serif;
+            min-height: 40px; /* Reduced min-height */
+            box-shadow: var(--md-shadow); /* Add subtle shadow to buttons */
+        }
+
+        .popup-btn .material-symbols-outlined {
+            color: white !important;
+            font-size: 1.1rem; /* Slightly smaller icon */
+        }
+
+        .popup-btn.phone { 
+            background: linear-gradient(135deg, var(--md-primary), #4f46e5); 
+        }
+        .popup-btn.whatsapp { 
+            background: linear-gradient(135deg, var(--md-success), #059669); 
+        }
+        .popup-btn.edit { 
+            background: linear-gradient(135deg, var(--md-warning), #d97706);
+        }
+        .popup-btn.delete { 
+            background: linear-gradient(135deg, var(--md-error), #dc2626); 
+        }
+        .popup-btn.carpool { 
+            background: linear-gradient(135deg, #374151, #1f2937); 
+        }
+
+        .popup-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--md-shadow-lg);
+        }
+
+        /* הודעות מערכת */
+        .toast-container {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 3000;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .toast {
+            background: var(--md-surface);
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            box-shadow: var(--md-shadow-lg);
+            border-left: 4px solid var(--md-success);
+            animation: slideIn 0.3s ease;
+            min-width: 250px;
+        }
+
+        .toast.error {
+            border-left-color: var(--md-error);
+        }
+
+        .toast.warning {
+            border-left-color: var(--md-warning);
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        /* CSS for slideOut animation, originally in script.js */
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+
+        /* רספונסיביות */
+        @media (max-width: 480px) {
+            #app-container {
+                max-width: 100vw;
+            }
+            
+            .header {
+                padding: 1.5rem 1rem;
+            }
+            
+            .logo-maya {
+                width: 120px;
+                height: 120px;
+            }
+            
+            .admin-fab {
+                width: 40px;
+                height: 40px;
+                top: 10px;
+            }
+            
+            #admin-login-btn {
+                left: 10px;
+            }
+            
+            .logout-btn {
+                right: 10px;
+            }
+            
+            .modal-content {
+                margin: 1rem;
+                padding: 1.5rem;
+            }
+            
+            .participant-count {
+                font-size: 0.75rem;
+                padding: 0.25rem 0.5rem;
+            }
+
+            /* Responsive Popup Buttons */
+            .popup-btns {
+                grid-template-columns: 1fr; /* Single column for very small screens */
+            }
+            .popup-btn {
+                max-width: none;
+            }
+        }
+    </style>
 </head>
 <body>
     <div id="app-container">
+        <!-- Header -->
         <header class="header">
             <!-- כפתור אדמין בפינה השמאלית העליונה -->
             <button id="admin-login-btn" class="admin-fab" title="כניסת אדמין">
@@ -26,16 +643,12 @@
             
             <div class="logo-container">
                 <div class="logo-maya">
-                    <img src="logo.jpg" alt="מאיה משלחת לאוגנדה">
+                    <img src="https://itaytay39.github.io/Maya-Delegation-to-Uganda1/logo.jpg" alt="מאיה משלחת לאוגנדה" onerror="this.src='https://placehold.co/140x140/FFFFFF/A0B939?text=Logo'">
                 </div>
             </div>
             <div class="title">מאיה - משלחת לאוגנדה</div>
             <div class="subtitle">מחברים בין חברים</div>
         </header>
-
-        <!-- טריוויה - הוסרה -->
-        <!-- <button id="trivia-btn">טריוויה מאוגנדה</button> -->
-        <!-- <div id="trivia-box"></div> -->
 
         <!-- חיפוש -->
         <div class="search-container">
@@ -55,31 +668,21 @@
                 <span class="material-symbols-outlined">download</span>
                 יצוא ל-Excel
             </button>
-            <button id="sync-btn" class="admin-control-btn">
-                <span class="material-symbols-outlined">sync</span>
-                סנכרון מהגיליון
-            </button>
         </div>
 
         <!-- מפה -->
         <div class="map-container">
             <div id="map"></div>
             <div class="participant-count">
-                <span id="participant-count">טוען נתונים מגוגל שיטס...</span>
+                <span id="participant-count">טוען...</span>
             </div>
             <button id="add-user-btn" class="fab add-fab" style="display: none;" title="הוסף משתמש">
                 <span class="material-symbols-outlined">add</span>
             </button>
-            <!-- כפתור "איפוס מפה" -->
-            <button id="reset-map-btn" class="fab reset-fab" title="אפס תצוגת מפה">
-                <span class="material-symbols-outlined">my_location</span>
+            <!-- New FAB for resetting map view -->
+            <button id="reset-view-fab" class="fab reset-view-fab" title="מרכז מפה">
+                <span class="material-symbols-outlined">explore</span>
             </button>
-        </div>
-
-        <!-- סטטוס סנכרון -->
-        <div id="sync-status" class="sync-status">
-            <span class="material-symbols-outlined sync-icon">cloud_sync</span>
-            <span id="sync-text">מתחבר לגוגל שיטס...</span>
         </div>
     </div>
 
@@ -111,10 +714,7 @@
         <div class="modal-content">
             <h3 id="user-form-title">➕ הוסף משתתף</h3>
             <div class="form-group">
-                <input type="text" class="form-input" placeholder="שם פרטי" id="user-first-name">
-            </div>
-            <div class="form-group">
-                <input type="text" class="form-input" placeholder="שם משפחה" id="user-last-name">
+                <input type="text" class="form-input" placeholder="שם מלא" id="user-name">
             </div>
             <div class="form-group">
                 <input type="text" class="form-input" placeholder="עיר" id="user-city">
@@ -142,8 +742,750 @@
     <div id="toast-container" class="toast-container"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+    <!-- Leaflet MarkerCluster JS -->
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
     <script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="./script.js"></script>
+    
+    <script>
+        // Ensure all global variables and functions are declared at the top scope
+        let participants = [
+            // Original sample data
+            {name: 'נועה בר', city: 'תל אביב', lat: 32.0853, lon: 34.7818, phone: '0501111111', whatsapp: '0501111111'},
+            {name: 'דוד לוי', city: 'חיפה', lat: 32.7940, lon: 34.9896, phone: '0522222222', whatsapp: '0522222222'},
+            {name: 'רוני ישראלי', city: 'ירושלים', lat: 31.7683, lon: 35.2137, phone: '0533333333', whatsapp: '0533333333'},
+            {name: 'אור בן דוד', city: 'באר שבע', lat: 31.2518, lon: 34.7913, phone: '0544444444', whatsapp: '0544444444'},
+            {name: 'תמר שלו', city: 'אילת', lat: 29.5581, lon: 34.9482, phone: '0505555555', whatsapp: '0505555555'},
+            {name: 'יונתן כהן', city: 'נתניה', lat: 32.3215, lon: 34.8532, phone: '0506666666', whatsapp: '0506666666'},
+            {name: 'שירה מרקו', city: 'פתח תקווה', lat: 32.0879, lon: 34.8883, phone: '0507777777', whatsapp: '0507777777'},
+            {name: 'עמית רוזן', city: 'ראשון לציון', lat: 31.9730, lon: 34.7925, phone: '0508888888', whatsapp: '0508888888'},
+            {name: 'מיכל שמיר', city: 'הרצליה', lat: 32.1624, lon: 34.8441, phone: '0509999999', whatsapp: '0509999999'},
+            {name: 'אלון ברק', city: 'כפר סבא', lat: 32.1742, lon: 34.9063, phone: '0500000001', whatsapp: '0500000001'},
+            {name: 'רחל אביטל', city: 'רמת גן', lat: 32.0809, lon: 34.8199, phone: '0500000002', whatsapp: '0500000002'},
+            {name: 'גיל פרידמן', city: 'בני ברק', lat: 32.0809, lon: 34.8312, phone: '0500000003', whatsapp: '0500000003'},
+            {name: 'לילך גולן', city: 'רחובות', lat: 31.8968, lon: 34.8186, phone: '0500000004', whatsapp: '0500000004'},
+            {name: 'אסף אליהו', city: 'מודיעין', lat: 31.8970, lon: 35.0066, phone: '0500000005', whatsapp: '0500000005'},
+            {name: 'ענת לבי', city: 'קריית גת', lat: 31.6100, lon: 34.7642, phone: '0500000006', whatsapp: '0500000006'},
+            {name: 'רם צדוק', city: 'אשדוד', lat: 31.7948, lon: 34.6553, phone: '0500000007', whatsapp: '0500000007'},
+            {name: 'דנה אשכנזי', city: 'אשקלון', lat: 31.6688, lon: 34.5742, phone: '0500000008', whatsapp: '0500000008'},
+            {name: 'יעקב מזרחי', city: 'עכו', lat: 32.9253, lon: 35.0818, phone: '0500000009', whatsapp: '0500000009'},
+            {name: 'טליה גבע', city: 'נהריה', lat: 33.0073, lon: 35.0944, phone: '0500000010', whatsapp: '0500000010'},
+            {name: 'מאיר שושן', city: 'צפת', lat: 32.9650, lon: 35.4950, phone: '0500000011', whatsapp: '0500000011'},
+            {name: 'נירית אלמוג', city: 'טבריה', lat: 32.7940, lon: 35.5454, phone: '0500000012', whatsapp: '0500000012'},
+            {name: 'ישי אורן', city: 'בית שאן', lat: 32.4970, lon: 35.4990, phone: '0500000013', whatsapp: '0500000013'},
+            {name: 'שלומית דן', city: 'עפולה', lat: 32.6073, lon: 35.2889, phone: '0500000014', whatsapp: '0500000014'},
+            {name: 'רובי אבן', city: 'נצרת', lat: 32.7018, lon: 35.3034, phone: '0500000015', whatsapp: '0500000015'},
+            {name: 'יעל ברוך', city: 'דימונה', lat: 31.0686, lon: 35.0330, phone: '0500000016', whatsapp: '0500000016'},
+            {name: 'איתמר רגב', city: 'ערד', lat: 31.2587, lon: 35.2130, phone: '0500000017', whatsapp: '0500000017'},
+            {name: 'חגית נחום', city: 'מצפה רמון', lat: 30.6093, lon: 34.8017, phone: '0500000018', whatsapp: '0500000018'},
+            {name: 'אריאל כץ', city: 'קריית שמונה', lat: 33.2090, lon: 35.5695, phone: '0500000019', whatsapp: '0500000019'},
+            {name: 'מרב דוד', city: 'בית שמש', lat: 31.7530, lon: 35.0066, phone: '0500000020', whatsapp: '0500000020'},
+            {name: 'אילן מנור', city: 'לוד', lat: 31.9516, lon: 34.8882, phone: '0500000021', whatsapp: '0500000021'},
+            {name: 'קרן אטיאס', city: 'רמלה', lat: 31.9299, lon: 34.8670, phone: '0500000022', whatsapp: '0500000022'},
+            {name: 'דור ביטון', city: 'יבנה', lat: 31.8770, lon: 34.7370, phone: '0500000023', whatsapp: '0500000023'},
+            {name: 'הדס לוין', city: 'גדרה', lat: 31.8160, lon: 34.7751, phone: '0500000024', whatsapp: '0500000024'},
+            {name: 'עידו פלג', city: 'קריית מלאכי', lat: 31.7303, lon: 34.7453, phone: '0500000025', whatsapp: '0500000025'},
+            {name: 'רונית שפיר', city: 'קריית ביאליק', lat: 32.8298, lon: 35.0889, phone: '0500000026', whatsapp: '0500000026'}
+        ];
+        window.participants = participants; // Make participants array globally accessible
+
+        let admin = false;
+        const adminPassword = "1234";
+        let editIdx = null; // Original edit index for local array operations
+
+        // מערכת אחסון מתקדמת - localStorage
+        const StorageManager = {
+            save: () => {
+                try {
+                    localStorage.setItem('maya-participants', JSON.stringify(participants));
+                    localStorage.setItem('maya-last-update', new Date().toISOString());
+                    console.log("💾 נתונים נשמרו ב-localStorage");
+                } catch (error) {
+                    console.error("❌ שגיאה בשמירת נתונים:", error);
+                }
+            },
+            
+            load: () => {
+                try {
+                    const saved = localStorage.getItem('maya-participants');
+                    const lastUpdate = localStorage.getItem('maya-last-update');
+                    
+                    if (saved) {
+                        const savedData = JSON.parse(saved);
+                        if (savedData.length > 0) {
+                            participants = savedData;
+                            console.log(`📂 נטענו ${participants.length} משתתפים מ-localStorage`);
+                            console.log(`📅 עדכון אחרון: ${lastUpdate}`);
+                            return true;
+                        }
+                    }
+                    return false;
+                } catch (error) {
+                    console.error("❌ שגיאה בטעינת נתונים:", error);
+                    return false;
+                }
+            }
+        };
+
+        // מערכת הודעות
+        const ToastManager = {
+            show: (message, type = 'success') => {
+                const container = document.getElementById('toast-container');
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+                toast.textContent = message;
+                
+                container.appendChild(toast);
+                
+                setTimeout(() => {
+                    toast.style.animation = 'slideOut 0.3s ease forwards';
+                    setTimeout(() => container.removeChild(toast), 300);
+                }, 3000);
+            }
+        };
+
+        // הגנת אדמין מתקדמת
+        const AdminGuard = {
+            isAdmin: () => admin,
+            requireAdmin: (callback) => {
+                if (!admin) {
+                    console.warn("🚫 ניסיון גישה לא מורשה לפונקציית אדמין");
+                    ToastManager.show("נדרשת הרשאת מנהל לפעולה זו", "error");
+                    return false;
+                }
+                return callback();
+            }
+        };
+
+        // אתחול מפה Leaflet (Original Map initialization)
+        const map = L.map('map').setView([31.5, 34.75], 8);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // אייקון סמן מודרני מתקדם
+        const modernMarkerIcon = L.divIcon({
+            className: 'modern-marker',
+            html: `
+                <div style="
+                    width: 36px;
+                    height: 36px;
+                    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+                    border-radius: 50% 50% 50% 0;
+                    transform: rotate(-45deg);
+                    border: 3px solid white;
+                    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.5);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    position: relative;
+                ">
+                    <div style="
+                        width: 16px;
+                        height: 16px;
+                        background: white;
+                        border-radius: 50%;
+                        transform: rotate(45deg);
+                        box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+                    "></div>
+                </div>
+            `,
+            iconSize: [36, 36],
+            iconAnchor: [18, 36],
+            popupAnchor: [0, -36]
+        });
+
+        // אלמנטים
+        const adminModal = document.getElementById('admin-login-modal');
+        const userModal = document.getElementById('user-form-modal');
+        const addBtn = document.getElementById('add-user-btn');
+        const adminControls = document.getElementById('admin-controls');
+        const searchInput = document.getElementById('search-input');
+        const participantCount = document.getElementById('participant-count');
+        const fileInput = document.getElementById('file-input');
+        const cityFilter = document.getElementById('city-filter');
+
+        // פונקציות עזר (גלובליות)
+        function distance(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+
+        async function geocodeCity(city) {
+            try {
+                console.log(`🔍 מחפש מיקום עבור: ${city}`);
+                const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city + ', ישראל')}`;
+                const resp = await fetch(url, {headers: {'Accept-Language': 'he'}});
+                const data = await resp.json();
+                if (data && data.length > 0) {
+                    console.log(`✅ נמצא מיקום עבור ${city}`);
+                    return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+                }
+                throw new Error('לא נמצא מיקום לעיר שהוזנה');
+            } catch (error) {
+                console.error(`❌ שגיאה בחיפוש מיקום עבור ${city}:`, error);
+                ToastManager.show('שגיאה בחיפוש מיקום העיר: ' + error.message, 'error');
+                throw new Error('שגיאה בחיפוש מיקום העיר');
+            }
+        }
+
+        function updateParticipantCount() {
+            participantCount.textContent = `${participants.length} משתתפים`;
+            console.log(`📊 עודכן מספר משתתפים: ${participants.length}`);
+        }
+
+        // --- Start of Google Sheets Sync object (as per original script.js) ---
+        const SHEET_CONFIG = { participantsUrl: 'https://docs.google.com/spreadsheets/d/1zunKbBVc74mtXfXkHjMDvQSpbu9n2PSasrxQ1CsRmvg/gviz/tq?tqx=out:csv', syncInterval: 60000 };
+        let syncTimer = null; // Defined here for global accessibility
+
+        const GoogleSheetsSync = {
+            async loadData(isManual = false) {
+                const url = `${SHEET_CONFIG.participantsUrl}&t=${new Date().getTime()}`;
+                if(document.getElementById('sync-btn')?.querySelector('.material-symbols-outlined')) {
+                    document.getElementById('sync-btn').querySelector('.material-symbols-outlined').style.animation = 'spin 1s linear infinite';
+                }
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
+                    const csvText = await response.text();
+                    const rows = this.parseCSV(csvText);
+                    if (rows.length < 2) throw new Error('No data or only headers in sheet');
+                    
+                    const headers = rows[0].map(h => h.trim()); 
+                    const fetchedParticipants = rows.slice(1).map(row => {
+                        const obj = {}; 
+                        headers.forEach((h, i) => obj[h] = row[i] || '');
+                        
+                        const lat = parseFloat(obj['Lat']);
+                        const lon = parseFloat(obj['Lon']);
+
+                        return { 
+                            name: `${obj['שם פרטי'] || ''} ${obj['שם משפחה'] || ''}`.trim(), 
+                            firstName: obj['שם פרטי'] || '', 
+                            lastName: obj['שם משפחה'] || '', 
+                            city: obj['עיר'] || 'לא צוין', 
+                            lat: isNaN(lat) ? null : lat, 
+                            lon: isNaN(lon) ? null : lon, 
+                            phone: this.formatPhone(obj['מספר טלפון']), 
+                            whatsapp: this.formatPhone(obj['מספר ווצאפ'] || obj['מספר WhatsApp'])
+                        };
+                    }).filter(p => p.name && p.lat !== null && p.lon !== null); 
+
+                    window.participants = fetchedParticipants; 
+                    StorageManager.save(); 
+                    if (isManual) ToastManager.show(`סונכרנו ${window.participants.length} משתתפים מגיליון גוגל.`, 'success');
+                    populateCityFilter(); // Global function
+                    renderMarkers(); // Global function
+                    updateParticipantCount(); // Global function
+                    
+                } catch (error) {
+                    console.error("❌ Data load error from Google Sheet:", error);
+                    ToastManager.show(`שגיאה בטעינת נתונים מגיליון גוגל: ${error.message}`, 'error');
+                    throw error; 
+                } finally {
+                     if(document.getElementById('sync-btn')?.querySelector('.material-symbols-outlined')) {
+                         document.getElementById('sync-btn').querySelector('.material-symbols-outlined').style.animation = '';
+                     }
+                }
+            },
+            parseCSV(csvText) {
+                const lines = csvText.split(/\r\n|\n/).filter(line => line.trim() !== ''); 
+                return lines.map(line => {
+                    const result = []; let current = ''; let inQuotes = false;
+                    for (let i = 0; i < line.length; i++) {
+                        const char = line[i]; const nextChar = line[i+1];
+                        if (char === '"' && inQuotes && nextChar === '"') { current += '"'; i++; } 
+                        else if (char === '"') { inQuotes = !inQuotes; } 
+                        else if (char === ',' && !inQuotes) { result.push(current.trim().replace(/^"|"$/g, '')); current = ''; } 
+                        else { current += char; }
+                    }
+                    result.push(current.trim().replace(/^"|"$/g, ''));
+                    return result;
+                });
+            },
+            formatPhone(phone) { 
+                if (!phone) return ''; 
+                const cleaned = phone.replace(/\D/g, ''); 
+                if (cleaned.startsWith('0')) {
+                    return cleaned;
+                } else if (cleaned.startsWith('972')) {
+                    return '0' + cleaned.substring(3); 
+                }
+                return '0' + cleaned.slice(-9); 
+            },
+            updateUI() { populateCityFilter(); renderMarkers(); updateParticipantCount(); }, 
+            startAutoSync() { this.stopAutoSync(); syncTimer = setInterval(() => this.loadData(false), SHEET_CONFIG.syncInterval); }, // Uses global syncTimer
+            stopAutoSync() { if (syncTimer) clearInterval(syncTimer); } // Uses global syncTimer
+        };
+        // --- End of Google Sheets Sync object ---
+
+
+        function populateCityFilter() { 
+            const cities = [...new Set(participants.map(user => user.city))].sort((a,b) => a.localeCompare(b, 'he')); 
+            const currentCity = cityFilter.value; 
+            cityFilter.innerHTML = '<option value="">כל הערים</option>'; 
+            cities.forEach(city => cityFilter.innerHTML += `<option value="${city}">${city}</option>`); 
+            cityFilter.value = cities.includes(currentCity) ? currentCity : ""; 
+        }
+
+        let markers = L.markerClusterGroup(); 
+
+        function renderMarkers(list = participants) {
+            console.log("🗺️ מציג סמנים על המפה...");
+            
+            // Re-initialize markers group for each renderMarkers call
+            if (markers) {
+                map.removeLayer(markers);
+            }
+            markers = L.markerClusterGroup(); // Initialize MarkerClusterGroup here
+
+            const groupedLocations = {};
+            list.forEach(p => {
+                const key = `${p.lat},${p.lon}`;
+                if (!groupedLocations[key]) {
+                    groupedLocations[key] = [];
+                }
+                groupedLocations[key].push(p);
+            });
+
+            // Process each group of identical coordinates
+            for (const key in groupedLocations) {
+                const group = groupedLocations[key];
+                const baseLat = group[0].lat;
+                const baseLon = group[0].lon;
+
+                group.forEach((p, indexInGroup) => {
+                    if (p.lat === null || isNaN(p.lat) || p.lon === null || isNaN(p.lon)) {
+                        console.warn(`Participant ${p.name} has invalid coordinates and will be skipped for marker display.`);
+                        return; 
+                    }
+
+                    // Apply a small deterministic offset for markers at the exact same location
+                    // This creates a "spiderfy" effect when the cluster expands
+                    const offsetMagnitude = 0.00005; // Smaller offset for finer spread
+                    const angleStep = (2 * Math.PI) / group.length;
+                    const angle = indexInGroup * angleStep;
+                    const offsetX = offsetMagnitude * Math.cos(angle);
+                    const offsetY = offsetMagnitude * Math.sin(angle);
+
+                    const finalLat = baseLat + offsetY;
+                    const finalLon = baseLon + offsetX;
+
+
+                    const whatsappNum = (p.whatsapp && p.whatsapp.length > 0) ? p.whatsapp : p.phone;
+                    const hasWhatsapp = whatsappNum && whatsappNum.length >= 9;
+                    
+                    let nearby = null;
+                    for (let j = 0; j < participants.length; j++) {
+                        const other = participants[j];
+                        if (other === p) continue;
+                        if (
+                            typeof other.lat === "number" &&
+                            typeof other.lon === "number" &&
+                            distance(p.lat, p.lon, other.lat, other.lon) <= 20
+                        ) {
+                            nearby = other;
+                            break;
+                        }
+                    }
+
+                    const popup = `
+                        <div class="popup-box">
+                            <div class="popup-name">
+                                <span class="material-symbols-outlined" style="color: var(--md-primary);">person</span>
+                                ${p.name}
+                            </div>
+                            <div class="popup-city">
+                                <span class="material-symbols-outlined" style="color: var(--md-primary);">location_on</span>
+                                <span>${p.city}</span>
+                            </div>
+                            <div class="popup-phone">📞 ${p.phone.replace(/^0(\d{2,3})(\d{7})$/, '0$1-$2')}</div>
+                            <div class="popup-btns">
+                                <a href="tel:${p.phone}" class="popup-btn phone" target="_blank">
+                                    <span class="material-symbols-outlined">call</span>
+                                    צור קשר
+                                </a>
+                                ${hasWhatsapp ? `
+                                <a href="https://wa.me/972${whatsappNum.replace(/^0/,'')}" class="popup-btn whatsapp" target="_blank">
+                                    <span class="material-symbols-outlined">chat</span>
+                                    וואטסאפ
+                                </a>
+                                ` : ''}
+                                ${admin ? `
+                                <button class="popup-btn edit" onclick="editUser(${participants.indexOf(p)})">
+                                    <span class="material-symbols-outlined">edit</span>
+                                    ערוך
+                                </button>
+                                <button class="popup-btn delete" onclick="deleteUser(${participants.indexOf(p)})">
+                                    <span class="material-symbols-outlined">delete</span>
+                                    מחק
+                                </button>
+                                ` : ''}
+                                ${nearby && hasWhatsapp ? `
+                                <button class="popup-btn carpool" onclick="suggestCarpool('${p.name}', '${whatsappNum}')">
+                                    <span class="material-symbols-outlined">directions_car</span>
+                                    הצע נסיעה משותפת
+                                </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                    
+                    const marker = L.marker([finalLat, finalLon], {icon: modernMarkerIcon});
+                    marker.bindPopup(popup, {closeButton: true, maxWidth: 350});
+                    markers.addLayer(marker); // Add to MarkerClusterGroup
+                });
+            }
+            
+            map.addLayer(markers); // Add the MarkerClusterGroup to map
+            
+            console.log(`✅ הוצגו ${list.length} סמנים על המפה`);
+        }
+
+
+        // פונקציות גלובליות לשימוש בפופאפ (Original local operations)
+        window.editUser = function(idx) {
+            return AdminGuard.requireAdmin(() => {
+                console.log(`✏️ עריכת משתמש: ${participants[idx].name}`);
+                editIdx = idx;
+                const p = participants[idx];
+                document.getElementById('user-form-title').innerText = '✏️ עריכת משתתף';
+                document.getElementById('user-name').value = p.name;
+                document.getElementById('user-city').value = p.city;
+                document.getElementById('user-phone').value = p.phone;
+                document.getElementById('user-whatsapp').value = p.whatsapp || '';
+                userModal.hidden = false;
+            });
+        };
+
+        window.deleteUser = function(idx) {
+            return AdminGuard.requireAdmin(() => {
+                const user = participants[idx];
+                if (confirm(`האם אתה בטוח שברצונך למחוק את ${user.name}?`)) {
+                    console.log(`🗑️ מוחק משתמש: ${user.name}`);
+                    participants.splice(idx, 1);
+                    StorageManager.save();
+                    renderMarkers();
+                    updateParticipantCount();
+                    ToastManager.show(`${user.name} נמחק בהצלחה`);
+                }
+            });
+        };
+
+        window.suggestCarpool = function(name, phone) {
+            console.log(`🚗 הצעת נסיעה משותפת ל: ${name}`);
+            const message = encodeURIComponent(`היי ${name}, רוצה לתאם נסיעה משותפת למשלחת מאיה לאוגנדה? 🚗✈️🇺🇸`);
+            window.open(`https://wa.me/972${phone.replace(/^0/,'')}?text=${message}`, '_blank');
+        };
+
+        // ניהול מצב אדמין מתקדם
+        function setAdminMode(isAdminMode) {
+            admin = isAdminMode;
+            const loginBtn = document.getElementById('admin-login-btn');
+            const logoutBtn = document.getElementById('admin-logout-btn');
+            
+            if (isAdminMode) {
+                loginBtn.style.display = 'none';
+                logoutBtn.style.display = 'flex';
+                addBtn.style.display = 'block';
+                adminControls.style.display = 'flex';
+                ToastManager.show('התחברת כמנהל בהצלחה! 🔐');
+            } else {
+                loginBtn.style.display = 'flex';
+                logoutBtn.style.display = 'none';
+                addBtn.style.display = 'none';
+                adminControls.style.display = 'none';
+                ToastManager.show('התנתקת בהצלחה! 👋');
+            }
+            
+            renderMarkers();
+        }
+
+        // יבוא מקבצי Excel/CSV
+        function importFromFile(file) {
+            return AdminGuard.requireAdmin(() => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        let data;
+                        if (file.name.endsWith('.csv')) {
+                            // טיפול ב-CSV
+                            const csv = e.target.result;
+                            const lines = csv.split('\n');
+                            data = lines.slice(1).map(line => {
+                                const [name, city, phone, whatsapp] = line.split(',');
+                                return { name: name?.trim(), city: city?.trim(), phone: phone?.trim(), whatsapp: whatsapp?.trim() };
+                            }).filter(item => item.name && item.city && item.phone);
+                        } else {
+                            // טיפול ב-Excel
+                            const workbook = XLSX.read(e.target.result, {type: 'binary'});
+                            const sheetName = workbook.SheetNames[0];
+                            const worksheet = workbook.Sheets[sheetName];
+                            data = XLSX.utils.sheet_to_json(worksheet);
+                        }
+                        
+                        // הוספת קואורדינטות לכל משתתף
+                        processImportedData(data);
+                        
+                    } catch (error) {
+                        console.error('❌ שגיאה ביבוא קובץ:', error);
+                        ToastManager.show('שגיאה בקריאת הקובץ', 'error');
+                    }
+                };
+                
+                if (file.name.endsWith('.csv')) {
+                    reader.readAsText(file);
+                } else {
+                    reader.readAsBinaryString(file);
+                }
+            });
+        }
+
+        async function processImportedData(data) {
+            console.log(`📥 מעבד ${data.length} רשומות מקובץ יבוא...`);
+            let successCount = 0;
+            
+            for (const item of data) {
+                try {
+                    const { lat, lon } = await geocodeCity(item.city);
+                    participants.push({
+                        name: item.name,
+                        city: item.city,
+                        lat,
+                        lon,
+                        phone: item.phone,
+                        whatsapp: item.whatsapp || ''
+                    });
+                    successCount++;
+                    await new Promise(resolve => setTimeout(resolve, 200)); // למנוע spam ל-API
+                } catch (error) {
+                    console.warn(`⚠️ לא ניתן למצוא מיקום עבור ${item.city}`);
+                }
+            }
+            
+            StorageManager.save();
+            renderMarkers();
+            updateParticipantCount();
+            ToastManager.show(`יובאו בהצלחה ${successCount} משתתפים!`);
+        }
+
+        // יצוא ל-Excel
+        function exportToExcel() {
+            return AdminGuard.requireAdmin(() => {
+                const exportData = participants.map(p => ({
+                    'שם': p.name,
+                    'עיר': p.city,
+                    'טלפון': p.phone,
+                    'וואטסאפ': p.whatsapp || '',
+                    'קו רוחב': p.lat,
+                    'קו אורך': p.lon
+                }));
+                
+                const ws = XLSX.utils.json_to_sheet(exportData);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "משתתפים");
+                
+                const fileName = `maya-participants-${new Date().toISOString().split('T')[0]}.xlsx`;
+                XLSX.writeFile(wb, fileName);
+                
+                ToastManager.show('הקובץ יוצא בהצלחה! 📊');
+            });
+        }
+
+        // מאזיני אירועים
+        document.getElementById('admin-login-btn').addEventListener('click', () => {
+            console.log("🔐 נפתח מודל כניסת אדמין");
+            adminModal.hidden = false;
+            document.getElementById('admin-password').focus();
+        });
+
+        document.getElementById('admin-logout-btn').addEventListener('click', () => {
+            console.log("🚪 התנתקות אדמין");
+            setAdminMode(false);
+        });
+
+        document.getElementById('admin-cancel').addEventListener('click', () => {
+            adminModal.hidden = true;
+            document.getElementById('admin-password').value = '';
+        });
+
+        document.getElementById('admin-login').addEventListener('click', () => {
+            const password = document.getElementById('admin-password').value;
+            console.log("🔑 ניסיון התחברות אדמין");
+            
+            if (password === adminPassword) {
+                setAdminMode(true);
+                adminModal.hidden = true;
+                document.getElementById('admin-password').value = '';
+                console.log("✅ התחברות אדמין הצליחה");
+            } else {
+                console.warn("❌ ניסיון התחברות אדמין נכשל");
+                ToastManager.show('סיסמה שגויה!', 'error');
+                document.getElementById('admin-password').value = '';
+            }
+        });
+
+        // כפתורי יבוא ויצוא
+        document.getElementById('import-btn').addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        document.getElementById('export-btn').addEventListener('click', exportToExcel);
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                importFromFile(file);
+                e.target.value = ''; // איפוס הקלט
+            }
+        });
+
+        // הוספת משתמש
+        addBtn.addEventListener('click', () => {
+            return AdminGuard.requireAdmin(() => {
+                console.log("➕ פתיחת טופס הוספת משתמש");
+                editIdx = null;
+                document.getElementById('user-form-title').innerText = '➕ הוסף משתתף';
+                document.getElementById('user-name').value = '';
+                document.getElementById('user-city').value = '';
+                document.getElementById('user-phone').value = '';
+                document.getElementById('user-whatsapp').value = '';
+                userModal.hidden = false;
+            });
+        });
+
+        document.getElementById('user-cancel').addEventListener('click', () => {
+            userModal.hidden = true;
+        });
+
+        // שמירת משתמש
+        document.getElementById('user-save').addEventListener('click', async () => {
+            return AdminGuard.requireAdmin(async () => {
+                const name = document.getElementById('user-name').value.trim();
+                const city = document.getElementById('user-city').value.trim();
+                const phone = document.getElementById('user-phone').value.trim();
+                const whatsapp = document.getElementById('user-whatsapp').value.trim();
+                
+                if (!name || !city || !phone) {
+                    ToastManager.show('אנא מלא את כל השדות הנדרשים', 'error');
+                    return;
+                }
+                
+                if (!/^0\d{8,9}$/.test(phone)) {
+                    ToastManager.show('מספר טלפון לא תקין', 'error');
+                    return;
+                }
+                
+                try {
+                    const saveBtn = document.getElementById('user-save');
+                    saveBtn.disabled = true;
+                    saveBtn.innerHTML = '<span class="material-symbols-outlined">autorenew</span> שומר...';
+                    
+                    console.log(`💾 שומר משתמש: ${name} מ${city}`);
+                    const { lat, lon } = await geocodeCity(city);
+                    
+                    if (editIdx !== null) {
+                        console.log(`✏️ עודכן משתמש: ${participants[editIdx].name} → ${name}`);
+                        participants[editIdx] = {name, city, lat, lon, phone, whatsapp};
+                        editIdx = null;
+                        ToastManager.show(`${name} עודכן בהצלחה!`);
+                    } else {
+                        console.log(`➕ נוסף משתמש חדש: ${name}`);
+                        participants.push({name, city, lat, lon, phone, whatsapp});
+                        ToastManager.show(`${name} נוסף בהצלחה!`);
+                    }
+                    
+                    StorageManager.save();
+                    userModal.hidden = true;
+                    renderMarkers();
+                    updateParticipantCount();
+                    
+                } catch (err) {
+                    console.error("❌ שגיאה בשמירת משתמש:", err);
+                    ToastManager.show('לא נמצא מיקום לעיר שהוזנה. אנא בדוק את שם העיר.', 'error');
+                } finally {
+                    const saveBtn = document.getElementById('user-save');
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = '<span class="material-symbols-outlined">save</span> שמירה';
+                }
+            });
+        });
+
+        // חיפוש
+        searchInput.addEventListener('input', function() {
+            const val = this.value.trim().toLowerCase();
+            console.log(`🔍 חיפוש: "${val}"`);
+            
+            if (!val) {
+                renderMarkers();
+                return;
+            }
+            const filtered = participants.filter(p =>
+                p.name.toLowerCase().includes(val) || 
+                p.city.toLowerCase().includes(val) || 
+                p.phone.includes(val)
+            );
+            console.log(`📋 נמצאו ${filtered.length} תוצאות חיפוש`);
+            renderMarkers(filtered);
+        });
+
+        // סגירת מודלים בלחיצה חיצונית
+        window.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) {
+                e.target.hidden = true;
+            }
+        });
+
+        // אתחול ראשוני
+        window.addEventListener('resize', () => { map.invalidateSize(); });
+        setTimeout(() => { map.invalidateSize(); }, 500);
+
+        // טעינת נתונים מ-localStorage או שימוש בברירת מחדל
+        console.log("🚀 מתחיל עיבוד נתונים ראשוני...");
+        if (!StorageManager.load()) {
+            console.log("📦 משתמש בנתונים לדוגמה");
+            StorageManager.save(); // שמירה ראשונית
+        }
+
+        renderMarkers();
+        updateParticipantCount();
+        console.log("✅ אפליקציית מאיה מוכנה לשימוש!");
+
+        // הוספת CSS לאנימציית slideOut (Original location)
+        const additionalCSS = `
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+        `;
+        const style = document.createElement('style');
+        style.innerHTML = additionalCSS;
+        document.head.appendChild(style);
+
+        // 📊 סטטיסטיקות למפתחים
+        console.log(`
+        📊 סטטיסטיקות המערכת:
+        👥 משתתפים: ${participants.length}
+        🔐 מצב אדמין: ${admin ? 'מחובר' : 'מנותק'}
+        🗺️ מרכז מפה: [31.5, 34.75]
+        🎨 עיצוב: Material Design 3 מתקדם
+        📱 רספונסיבי: מותאם למובייל בלבד
+        🔍 חיפוש: זמין
+        🚗 נסיעות משותפות: זמין
+        📊 יבוא/יצוא Excel: זמין לאדמין
+        💾 אחסון: localStorage
+        🔐 הגנת אדמין: מתקדמת
+        `);
+
+        // Handle click on reset view FAB - added by Gemini, adjusted for Leaflet
+        document.getElementById('reset-view-fab').addEventListener('click', () => {
+            map.setView([31.5, 34.75], 8); // Reset to Israel center and zoom
+            ToastManager.show('הצגת מפה אופסה למרכז ישראל', 'info');
+        });
+    </script>
 </body>
 </html>
