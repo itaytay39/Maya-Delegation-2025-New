@@ -1,21 +1,19 @@
 :root {
-    --md-primary: #6366f1; /* Indigo 500 */
-    --md-secondary: #8b5cf6; /* Violet 500 */
-    --md-success: #10b981; /* Emerald 500 */
-    --md-error: #ef4444; /* Red 500 */
-    --md-warning: #f59e0b; /* Amber 500 */
+    --md-primary: #6366f1;
+    --md-secondary: #8b5cf6;
+    --md-success: #10b981;
+    --md-error: #ef4444;
+    --md-warning: #f59e0b;
     --md-surface: #ffffff;
-    --md-background: #f8fafc; /* Cool Gray 50 */
-    --md-text: #1e293b; /* Slate 900 */
-    --md-border: #e2e8f0; /* Slate 200 */
+    --md-background: #f8fafc;
+    --md-text: #1e293b;
+    --md-border: #e2e8f0;
     --md-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     --md-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    --md-radius: 24px; /* Default large radius for elements */
+    --md-radius: 24px;
     --md-transition: 0.2s cubic-bezier(0.4,0,0.2,1);
-    --md-fab-size: 56px; /* Standard Material Design 3 FAB size */
 }
 
-/* Base styles and reset */
 * {
     margin: 0;
     padding: 0;
@@ -24,33 +22,28 @@
 
 body {
     font-family: 'Heebo', sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); /* Original gradient background */
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     min-height: 100vh;
     direction: rtl;
     color: var(--md-text);
-    overflow: hidden; /* Prevent body scroll, let app-container manage */
 }
 
 #app-container {
-    max-width: 480px; /* Max width for app content, similar to original, but adapts */
+    max-width: 480px;
     margin: 0 auto;
     background: var(--md-background);
-    min-height: 100vh; /* Take full viewport height on mobile */
+    min-height: 100vh;
     position: relative;
-    overflow-x: hidden; /* Prevent horizontal scroll */
-    display: flex;
-    flex-direction: column;
+    overflow-x: hidden;
 }
 
-/* Header */
+/* כותרת */
 .header {
     background: linear-gradient(135deg, var(--md-primary), var(--md-secondary));
     padding: 2rem 1.5rem;
     text-align: center;
     color: white;
     position: relative;
-    box-shadow: var(--md-shadow); /* Add shadow for elevation */
-    z-index: 100; /* Ensure header is above other content */
 }
 
 .logo-container {
@@ -135,12 +128,62 @@ body {
     font-weight: 300;
 }
 
-/* Search bar */
+/* טריוויה */
+#trivia-btn {
+    background-color: #6c63ff;
+    color: white;
+    font-weight: 700;
+    font-size: 1.1rem;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(108, 99, 255, 0.4);
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    margin: 10px auto 20px;
+    display: block;
+    max-width: 200px;
+    text-align: center;
+    direction: rtl;
+}
+
+#trivia-btn:hover {
+    background-color: #574bdb;
+    box-shadow: 0 6px 12px rgba(87, 75, 219, 0.6);
+}
+
+#trivia-box {
+    max-width: 600px;
+    margin: 0 auto 30px;
+    padding: 15px;
+    background-color: #f5f5ff;
+    border-radius: 10px;
+    font-size: 1.2rem;
+    direction: rtl;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+#trivia-box button {
+    background: #6c63ff;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    margin: 5px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+#trivia-box button:hover {
+    background: #574bdb;
+}
+
+/* חיפוש */
 .search-container {
     padding: 1rem;
     background: var(--md-surface);
-    box-shadow: var(--md-shadow); /* Elevate search bar */
-    z-index: 50; /* Above map but below header */
+    box-shadow: var(--md-shadow);
 }
 
 .search-box {
@@ -173,20 +216,16 @@ body {
     background: transparent;
 }
 
-/* Admin control buttons */
+/* כפתורי ניהול אדמין */
 .admin-controls {
     padding: 0 1rem;
     display: flex;
     gap: 0.5rem;
-    margin-bottom: 1rem; /* Adjust margin for mobile layout */
-    flex-wrap: wrap; /* Allow buttons to wrap on smaller screens */
-    justify-content: center;
-    margin-top: 1rem; /* Add margin after search bar */
+    margin-bottom: 1rem;
 }
 
 .admin-control-btn {
-    flex-basis: calc(50% - 0.25rem); /* Two columns on mobile */
-    max-width: calc(50% - 0.25rem);
+    flex: 1;
     padding: 0.75rem 1rem;
     border: none;
     border-radius: 12px;
@@ -207,16 +246,14 @@ body {
     transform: translateY(-1px);
 }
 
-/* Map */
+/* מפה */
 .map-container {
-    flex-grow: 1; /* Allow map to take remaining vertical space */
-    min-height: 400px; /* Minimum height for map on smaller devices */
+    height: 60vh;
     margin: 1rem;
     border-radius: var(--md-radius);
     overflow: hidden;
     box-shadow: var(--md-shadow-lg);
     position: relative;
-    z-index: 10; /* Below FABs and modals */
 }
 
 #map {
@@ -236,14 +273,39 @@ body {
     color: var(--md-text);
     backdrop-filter: blur(10px);
     box-shadow: var(--md-shadow);
-    z-index: 100; /* Above map tiles */
 }
 
-/* Floating Action Buttons (FABs) */
+/* סטטוס סנכרון */
+.sync-status {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    background: var(--md-surface);
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    box-shadow: var(--md-shadow);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    z-index: 1000;
+}
+
+.sync-icon {
+    color: var(--md-success);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* כפתורים צפים */
 .fab {
     position: absolute;
-    width: var(--md-fab-size);
-    height: var(--md-fab-size);
+    width: 60px;
+    height: 60px;
     border-radius: 50%;
     border: none;
     color: white;
@@ -252,7 +314,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.8rem; /* Larger icon for FAB */
+    font-size: 1.5rem;
     transition: all 0.3s ease;
     z-index: 1000;
 }
@@ -263,18 +325,12 @@ body {
     background: linear-gradient(135deg, var(--md-success), #059669);
 }
 
-.reset-fab {
-    bottom: 1rem;
-    right: 1rem;
-    background: linear-gradient(135deg, #007bff, #0056b3);
-}
-
 .fab:hover {
     transform: scale(1.1);
     box-shadow: 0 12px 35px rgba(99, 102, 241, 0.4);
 }
 
-/* Modals (for admin login, add/edit user) */
+/* מודלים */
 .modal {
     position: fixed;
     top: 0;
@@ -326,7 +382,7 @@ body {
     font-size: 1.5rem;
 }
 
-/* Forms */
+/* טפסים */
 .form-group {
     margin-bottom: 1rem;
 }
@@ -348,7 +404,7 @@ body {
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
-/* Buttons */
+/* כפתורים */
 .button-group {
     display: flex;
     gap: 0.75rem;
@@ -390,102 +446,104 @@ body {
     background: #cbd5e1;
 }
 
-/* Participant Details Bottom Sheet - NEW MATERIAL DESIGN 3 STYLE */
-.bottom-sheet {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 100%; /* Initially full height, hidden by transform */
-    display: flex;
-    align-items: flex-end; /* Align content to the bottom */
-    z-index: 2000;
-    background-color: rgba(0, 0, 0, 0.5); /* Overlay background */
-    backdrop-filter: blur(5px);
-    transition: transform 0.3s ease-out, visibility 0s linear 0.3s;
-    transform: translateY(100%); /* Start hidden below screen */
-    visibility: hidden; /* Hide element completely when not in use */
+/* עיצוב בועית Popup */
+.leaflet-popup-content {
+    margin: 12px !important;
+    min-width: 300px;
+    font-family: 'Heebo', sans-serif;
+    direction: rtl;
 }
 
-.bottom-sheet:not([hidden]) {
-    visibility: visible;
-    transform: translateY(0); /* Slide up into view */
-    transition: transform 0.3s ease-out; /* Only transform transition when shown */
-}
-
-.bottom-sheet-content {
+.popup-box {
     background: var(--md-surface);
-    border-top-left-radius: var(--md-radius);
-    border-top-right-radius: var(--md-radius);
-    padding: 2rem 1.5rem;
-    width: 100%;
-    max-height: 90vh; /* Don't take full height, leave some space at top */
-    overflow-y: auto; /* Allow scrolling if content is too long */
-    box-shadow: 0 -8px 20px rgba(0,0,0,0.2); /* Shadow indicating it's lifted */
-    position: relative;
-    display: flex;
-    flex-direction: column;
+    border-radius: var(--md-radius);
+    padding: 1.5rem;
+    text-align: center;
+    box-shadow: var(--md-shadow-lg);
+    border: 1px solid var(--md-border);
 }
 
-.bottom-sheet-close-btn {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
-    background: none;
-    border: none;
-    font-size: 2rem; /* Larger icon for easy tapping */
-    color: var(--md-text);
-    cursor: pointer;
-    width: 48px; /* Material Design minimum touch target */
-    height: 48px; /* Material Design minimum touch target */
+.popup-name {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--md-primary);
+    margin-bottom: 0.5rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 50%;
-    transition: background-color 0.2s;
-    z-index: 10; /* Ensure it's above other content in bottom sheet */
+    gap: 0.5rem;
 }
 
-.bottom-sheet-close-btn:hover {
-    background-color: var(--md-background);
-}
-
-#bottom-sheet-details {
-    margin-top: 1rem; /* Space below close button */
-    padding-top: 0.5rem; /* Additional padding if needed */
-}
-
-.bottom-sheet-details-section {
-    margin-bottom: 1rem;
+.popup-city {
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--md-text);
+    margin-bottom: 0.5rem;
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    font-size: 1.1rem;
-    color: var(--md-text);
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.popup-phone {
+    font-size: 1rem;
+    color: #64748b;
+    margin-bottom: 1rem;
+    direction: ltr;
     font-weight: 500;
 }
 
-.bottom-sheet-details-section .material-symbols-outlined {
-    font-size: 1.5rem;
-    color: var(--md-primary);
-}
-
-.bottom-sheet-details-buttons {
+.popup-btns {
     display: flex;
-    flex-wrap: wrap; /* Allow buttons to wrap */
+    flex-direction: column;
     gap: 0.75rem;
-    margin-top: 1.5rem;
+}
+
+.popup-btn {
+    padding: 0.75rem 1rem;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
     justify-content: center;
+    gap: 0.5rem;
+    color: white !important;
+    font-family: 'Heebo', sans-serif;
+    min-height: 48px;
 }
 
-.bottom-sheet-details-buttons .btn {
-    flex-grow: 1; /* Allow buttons to grow to fill space */
-    min-width: 120px; /* Minimum width for buttons */
-    max-width: 100%; /* Ensure they don't get too wide on large screens */
+.popup-btn .material-symbols-outlined {
+    color: white !important;
+    font-size: 1.2rem;
 }
 
+.popup-btn.phone { 
+    background: linear-gradient(135deg, var(--md-primary), #4f46e5); 
+}
+.popup-btn.whatsapp { 
+    background: linear-gradient(135deg, var(--md-success), #059669); 
+}
+.popup-btn.edit { 
+    background: linear-gradient(135deg, var(--md-warning), #d97706);
+}
+.popup-btn.delete { 
+    background: linear-gradient(135deg, var(--md-error), #dc2626); 
+}
+.popup-btn.carpool { 
+    background: linear-gradient(135deg, #374151, #1f2937); 
+}
 
-/* System messages (Toast) */
+.popup-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--md-shadow-lg);
+}
+
+/* הודעות מערכת */
 .toast-container {
     position: fixed;
     top: 1rem;
@@ -524,7 +582,7 @@ body {
     to { transform: translateX(100%); opacity: 0; }
 }
 
-/* Responsive adjustments */
+/* רספונסיביות */
 @media (max-width: 480px) {
     #app-container {
         max-width: 100vw;
@@ -565,21 +623,5 @@ body {
 
     .admin-controls {
         flex-direction: column;
-        gap: 0.75rem; /* More space between stacked buttons */
-    }
-
-    .admin-control-btn {
-        flex-basis: 100%; /* Full width for admin buttons on small screens */
-        max-width: 100%;
-    }
-
-    .bottom-sheet-content {
-        padding: 1.5rem 1rem; /* Adjust padding for smaller screens */
-    }
-
-    .bottom-sheet-close-btn {
-        font-size: 1.8rem !important; /* Slightly smaller on very small screens */
-        width: 40px !important;
-        height: 40px !important;
     }
 }

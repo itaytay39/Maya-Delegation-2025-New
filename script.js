@@ -1,22 +1,25 @@
-// 🚀 Maya App connected to Google Sheets - Advanced Version
-console.log("🚀 Initializing Maya App connected to Google Sheets...");
+// 🚀 אפליקציית מאיה מחוברת לגוגל שיטס - גרסה מתקדמת
+console.log("🚀 מתחיל אתחול אפליקציית מאיה מחוברת לגוגל שיטס...");
 
-// System settings
+// הגדרות מערכת
 const SHEET_CONFIG = {
     spreadsheetId: '1zunKbBVc74mtXfXkHjMDvQSpbu9n2PSasrxQ1CsRmvg',
-    participantsUrl: 'https://docs.google.com/spreadsheets/d/1zunKbBVc74mtXfXkHjMDvQSpbu9n2PSasrxQ1CsRmvg/gviz/tq?tqx=out:csv',
-    syncInterval: 30000, // Sync every 30 seconds
-    appsScriptUrl: 'https://script.google.com/macros/s/AKfycbz1DrYpMY8F7awe-BuveOR_i8iwSiAHF7dRTgbh1j91beIyRy9GcIHcjhEeK3VIdlj31Q/exec' // The new URL you received
+    // participantsUrl הוסר - נשתמש ב-Apps Script במקום
+    // triviaUrl נשמר, אך הלוגיקה הוסרה
+    syncInterval: 30000, // סנכרון כל 30 שניות
+    appsScriptUrl: 'https://script.google.com/macros/s/AKfycbz1DrYpMY8F7awe-BuveOR_i8iwSiAHF7dRTgbh1j91beIyRy9GcIHcjhEeK3VIdlj31Q/exec' // ה-URL החדש שקיבלת
 };
 
-// Global variables
+// משתנים גלובליים
 let participants = [];
+let triviaQuestions = []; // נשאר אך לא בשימוש
 let admin = false;
 const adminPassword = "1234";
 let editIdx = null;
 let syncTimer = null;
+let isFirstSyncLoad = true; // דגל כדי לשלוט בהודעות הסנכרון
 
-// Advanced notification system
+// מערכת הודעות מתקדמת
 const ToastManager = {
     show: (message, type = 'success') => {
         const container = document.getElementById('toast-container');
@@ -37,17 +40,16 @@ const ToastManager = {
     }
 };
 
-// Sync status system (updated to not fail if element is missing)
+// מערכת מצב סנכרון
 const SyncStatus = {
-    element: null, // Initialized to null
+    element: null,
     
     init() {
-        // Try to get the element, but don't fail if it doesn't exist
         this.element = document.getElementById('sync-text');
     },
     
     update(message, isError = false) {
-        if (this.element) { // Only update if the element actually exists
+        if (this.element) {
             this.element.textContent = message;
             const icon = document.querySelector('.sync-icon');
             if (icon) {
@@ -57,86 +59,81 @@ const SyncStatus = {
     }
 };
 
-// Google Sheets data loading system
+// מערכת טעינת נתונים מגוגל שיטס
 const GoogleSheetsSync = {
     async loadParticipants() {
+        const prevParticipantsLength = participants.length;
         try {
-            console.log("📡 Loading data from Google Sheets...");
-            // SyncStatus.update("Loading data..."); // Removed visual update here
+            console.log("📡 טוען נתונים מגוגל שיטס דרך Apps Script...");
+            SyncStatus.update("טוען נתונים...");
             
-            const response = await fetch(SHEET_CONFIG.participantsUrl);
+            // שליחת בקשה ל-Apps Script לקבלת כל נתוני המשתתפים
+            const response = await fetch(SHEET_CONFIG.appsScriptUrl, {
+                method: 'POST', // נשאר POST כדי להתאים ל-doPost ב-Apps Script
+                headers: {
+                    'Content-Type': 'text/plain;charset=utf-8' // חשוב להגדיר את זה
+                },
+                body: JSON.stringify({ action: 'getParticipantsData' }) // בקשה לפעולה חדשה
+            });
+
             if (!response.ok) throw new Error('Network response was not ok');
             
-            const csvText = await response.text();
-            const rows = this.parseCSV(csvText);
-            
-            if (rows.length === 0) {
-                throw new Error('No data in the sheet');
+            const result = await response.json(); // מצפים לתשובת JSON ישירות
+
+            if (result.status === 'error') {
+                throw new Error(result.message || 'שגיאה כללית בקבלת נתונים מ-Apps Script');
+            }
+
+            // הנתונים יגיעו במבנה של מערך אובייקטים
+            const rawData = result.data || []; 
+
+            if (rawData.length === 0) {
+                console.warn('אין נתונים בגיליון (Apps Script החזיר ריק או שלא מצא נתונים)');
+                ToastManager.show('אין נתונים זמינים בגיליון.', 'warning');
+                participants = []; // איפוס המשתתפים אם אין נתונים
+                this.updateUI();
+                return; // יציאה מוקדמת
             }
             
-            const headers = rows[0];
-            participants = rows.slice(1)
-                .filter(row => row[0] && row[0].trim()) // Filter empty rows
-                .map(row => {
-                    const obj = {};
-                    headers.forEach((h, i) => {
-                        obj[h.trim()] = row[i] ? row[i].trim().replace(/"/g, '') : '';
-                    });
-                    
-                    return {
-                        firstName: obj['שם פרטי'] || '',
-                        lastName: obj['שם משפחה'] || '',
-                        name: (obj['שם פרטי'] || '') + ' ' + (obj['שם משפחה'] || ''),
-                        city: obj['עיר'] || '',
-                        lat: parseFloat(obj['Lat']) || null,
-                        lon: parseFloat(obj['Lon']) || null,
-                        phone: this.formatPhone(obj['מספר טלפון'] || ''),
-                        whatsapp: this.formatPhone(obj['מספר ווצאפ'] || obj['מספר WhatsApp'] || '')
-                    };
-                })
-                .filter(p => p.lat && p.lon && !isNaN(p.lat) && !isNaN(p.lon)); // Filter invalid data
+            // תהליך המיפוי והסינון נשאר זהה
+            participants = rawData.map(obj => {
+                return {
+                    firstName: obj['שם פרטי'] || '',
+                    lastName: obj['שם משפחה'] || '',
+                    name: (obj['שם פרטי'] || '') + ' ' + (obj['שם משפחה'] || ''),
+                    city: obj['עיר'] || '',
+                    lat: parseFloat(obj['Lat']) || null,
+                    lon: parseFloat(obj['Lon']) || null,
+                    phone: this.formatPhone(obj['מספר טלפון'] || ''),
+                    whatsapp: this.formatPhone(obj['מספר ווצאפ'] || obj['מספר WhatsApp'] || '')
+                };
+            }).filter(p => p.lat && p.lon && !isNaN(p.lat) && !isNaN(p.lon)); // סינון שורות ללא קואורדינטות תקפות
             
-            console.log(`✅ Loaded ${participants.length} participants from the sheet`);
-            // SyncStatus.update(`Loaded ${participants.length} participants`); // Removed visual update here
-            ToastManager.show(`Loaded ${participants.length} participants from the sheet`);
+            console.log(`✅ נטענו ${participants.length} משתתפים דרך Apps Script`);
+            SyncStatus.update(`נטענו ${participants.length} משתתפים`);
+            
+            // הצגת הודעה רק אם זו הטעינה הראשונה או אם מספר המשתתפים השתנה
+            if (isFirstSyncLoad || participants.length !== prevParticipantsLength) {
+                ToastManager.show(`נטענו ${participants.length} משתתפים מהגיליון`);
+                isFirstSyncLoad = false;
+            } else {
+                console.log("אין שינוי במספר המשתתפים, לא מציג הודעה.");
+            }
             
             this.updateUI();
             
         } catch (error) {
-            console.error("❌ Error loading data:", error);
-            // SyncStatus.update("Error loading data", true); // Removed visual update here
-            ToastManager.show('Error loading data from the sheet', 'error');
+            console.error("❌ שגיאה בטעינת נתונים דרך Apps Script:", error);
+            SyncStatus.update("שגיאה בטעינת נתונים", true);
+            ToastManager.show(`שגיאה בטעינת נתונים: ${error.message}`, 'error');
+            isFirstSyncLoad = false;
         }
     },
     
-    parseCSV(csvText) {
-        const lines = csvText.split('\n');
-        return lines.map(line => {
-            const result = [];
-            let current = '';
-            let inQuotes = false;
-            
-            for (let i = 0; i < line.length; i++) {
-                const char = line[i];
-                const nextChar = line[i + 1];
-                
-                if (char === '"' && inQuotes && nextChar === '"') {
-                    current += '"';
-                    i++;
-                } else if (char === '"') {
-                    inQuotes = !inQuotes;
-                } else if (char === ',' && !inQuotes) {
-                    result.push(current);
-                    current = '';
-                } else {
-                    current += char;
-                }
-            }
-            result.push(current);
-            return result;
-        });
-    },
-    
+    // loadTrivia ו-parseCSV נשארים אך לא נקראים כרגע
+    async loadTrivia() { /* קוד טריוויה */ },
+    parseCSV(csvText) { /* פונקציית parseCSV */ return []; }, // פונקציית parseCSV ריקה כעת
+
     formatPhone(phone) {
         if (!phone) return '';
         const cleaned = phone.replace(/\D/g, '');
@@ -156,7 +153,7 @@ const GoogleSheetsSync = {
         syncTimer = setInterval(() => {
             this.loadParticipants();
         }, SHEET_CONFIG.syncInterval);
-        console.log("🔄 Auto sync activated");
+        console.log("🔄 סנכרון אוטומטי הופעל");
     },
     
     stopAutoSync() {
@@ -167,11 +164,16 @@ const GoogleSheetsSync = {
     }
 };
 
-// Map variables declared globally, but initialized inside DOMContentLoaded
-let map;
-let markers;
+// אתחול מפה
+const map = L.map('map').setView([31.5, 34.75], 8);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+}).addTo(map);
 
-// Custom marker icon
+// יצירת קבוצת סמנים (Marker Cluster Group)
+const markers = L.markerClusterGroup(); // שימוש בספרייה לריבוי סמנים באותו אזור
+
+// אייקון סמן מותאם
 const createMarkerIcon = () => L.divIcon({
     className: 'modern-marker',
     html: `
@@ -203,7 +205,7 @@ const createMarkerIcon = () => L.divIcon({
     popupAnchor: [0, -36]
 });
 
-// Helper function to calculate distance
+// פונקציית עזר לחישוב מרחק
 function distance(lat1, lon1, lat2, lon2) {
     const R = 6371; // Radius of Earth in km
     const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -214,7 +216,7 @@ function distance(lat1, lon1, lat2, lon2) {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
-// Update participant count
+// עדכון מספר משתתפים
 function updateParticipantCount() {
     const countElement = document.getElementById('participant-count');
     if (countElement) {
@@ -222,126 +224,93 @@ function updateParticipantCount() {
     }
 }
 
-// Display markers on the map
+// הצגת סמנים על המפה
 function renderMarkers(list = participants) {
-    console.log("🗺️ Displaying markers on the map...");
+    console.log("🗺️ מציג סמנים על המפה...");
     
-    // Clear existing markers from the marker group
+    // ניקוי סמנים קיימים מקבוצת הסמנים
     markers.clearLayers();
     
-    // Add new markers
     list.forEach((p, idx) => {
         if (!p.lat || !p.lon || isNaN(p.lat) || isNaN(p.lon)) return;
         
+        const whatsappNum = (p.whatsapp && p.whatsapp.length > 0) ? p.whatsapp : p.phone;
+        const hasWhatsapp = whatsappNum && whatsappNum.length >= 9;
+        
+        let nearby = null; // לוגיקת "קרוב" נשמרת אך אינה בשימוש בפופאפ
+        /*
+        for (let j = 0; j < participants.length; j++) {
+            const other = participants[j];
+            if (other === p || !other.lat || !other.lon) continue;
+            
+            if (distance(p.lat, p.lon, other.lat, other.lon) <= 10) {
+                nearby = other;
+                break;
+            }
+        }
+        */
+
+        const popup = `
+            <div class="popup-box">
+                <div class="popup-name">
+                    <span class="material-symbols-outlined" style="color: #6366f1;">person</span>
+                    ${p.name}
+                </div>
+                <div class="popup-city">
+                    <span class="material-symbols-outlined" style="color: #6366f1;">location_on</span>
+                    <span>${p.city}</span>
+                </div>
+                <div class="popup-phone">📞 ${p.phone.replace(/^0(\d{2,3})(\d{7})$/, '0$1-$2')}</div>
+                <div class="popup-btns">
+                    <a href="tel:${p.phone}" class="popup-btn phone" target="_blank">
+                        <span class="material-symbols-outlined">call</span>
+                        צור קשר
+                    </a>
+                    ${hasWhatsapp ? `
+                    <a href="https://wa.me/972${whatsappNum.replace(/^0/,'')}?text=${encodeURIComponent(`היי ${p.firstName}, אשמח לתאם נסיעה משותפת למשלחת מאיה לאוגנדה! 🚗`)}" class="popup-btn whatsapp" target="_blank">
+                        <span class="material-symbols-outlined">chat</span>
+                        וואטסאפ
+                    </a>
+                    ` : ''}
+                    ${admin ? `
+                    <button class="popup-btn edit" onclick="editUser(${idx})">
+                        <span class="material-symbols-outlined">edit</span>
+                        ערוך
+                    </button>
+                    <button class="popup-btn delete" onclick="deleteUser(${idx})">
+                        <span class="material-symbols-outlined">delete</span>
+                        מחק
+                    </button>
+                    ` : ''}
+                    <!-- nearby ו-carpool הוסרו - ניתן להוסיף בחזרה אם יש צורך -->
+                    <!-- ${nearby && hasWhatsapp ? `
+                    <button class="popup-btn carpool" onclick="suggestCarpool('${p.name}', '${whatsappNum}')">
+                        <span class="material-symbols-outlined">directions_car</span>
+                        הצע נסיעה משותפת
+                    </button>
+                    ` : ''} -->
+                </div>
+            </div>
+        `;
+        
         const marker = L.marker([p.lat, p.lon], {icon: createMarkerIcon()});
-        
-        // Instead of binding a popup, bind a click event to open the custom bottom sheet
-        marker.on('click', () => openParticipantBottomSheet(p, idx));
-        
-        markers.addLayer(marker); // Add the marker to the marker group
+        markers.addLayer(marker); // הוספת הסמן לקבוצת הסמנים
+        marker.bindPopup(popup, {closeButton: true, maxWidth: 350});
     });
     
-    map.addLayer(markers); // Add the marker group to the map
+    map.addLayer(markers); // הוספת קבוצת הסמנים למפה
     
-    console.log(`✅ Displayed ${list.length} markers on the map`);
+    console.log(`✅ הוצגו ${list.length} סמנים על המפה`);
 }
 
-// --- Participant Details Bottom Sheet Logic ---
-const participantBottomSheet = document.getElementById('participant-details-bottom-sheet');
-const bottomSheetDetails = document.getElementById('bottom-sheet-details');
-const bottomSheetCloseBtn = document.querySelector('.bottom-sheet-close-btn');
-
-// Function to open the bottom sheet with participant data
-function openParticipantBottomSheet(participant, idx) {
-    bottomSheetDetails.innerHTML = ''; // Clear previous content
-
-    const whatsappNum = (participant.whatsapp && participant.whatsapp.length > 0) ? participant.whatsapp : participant.phone;
-    const hasWhatsapp = whatsappNum && whatsappNum.length >= 9;
-
-    // Logic for nearby users
-    let nearby = null;
-    for (let j = 0; j < participants.length; j++) {
-        const other = participants[j];
-        if (other === participant || !other.lat || !other.lon) continue;
-        if (distance(participant.lat, participant.lon, other.lat, other.lon) <= 10) {
-            nearby = other;
-            break;
-        }
-    }
-
-    // Populate the bottom sheet with details
-    bottomSheetDetails.innerHTML = `
-        <div class="bottom-sheet-details-section">
-            <span class="material-symbols-outlined">person</span>
-            <h2>${participant.name}</h2>
-        </div>
-        <div class="bottom-sheet-details-section">
-            <span class="material-symbols-outlined">location_on</span>
-            <span>${participant.city}</span>
-        </div>
-        <div class="bottom-sheet-details-section">
-            <span class="material-symbols-outlined">phone</span>
-            <span>${participant.phone.replace(/^0(\d{2,3})(\d{7})$/, '0$1-$2')}</span>
-        </div>
-
-        <div class="bottom-sheet-details-buttons">
-            <a href="tel:${participant.phone}" class="btn btn-primary">
-                <span class="material-symbols-outlined">call</span>
-                צור קשר
-            </a>
-            ${hasWhatsapp ? `
-            <a href="https://wa.me/972${whatsappNum.replace(/^0/,'')}?text=${encodeURIComponent(`היי ${participant.firstName}, אשמח לתאם נסיעה משותפת למשלחת מאיה לאוגנדה! 🚗`)}" class="btn btn-primary" target="_blank">
-                <span class="material-symbols-outlined">chat</span>
-                וואטסאפ
-            </a>
-            ` : ''}
-            ${admin ? `
-            <button class="btn btn-secondary edit-btn" onclick="editUser(${idx}); closeParticipantBottomSheet();">
-                <span class="material-symbols-outlined">edit</span>
-                ערוך
-            </button>
-            <button class="btn btn-secondary delete-btn" onclick="deleteUser(${idx}); closeParticipantBottomSheet();">
-                <span class="material-symbols-outlined">delete</span>
-                מחק
-            </button>
-            ` : ''}
-            ${nearby && hasWhatsapp ? `
-            <button class="btn btn-secondary carpool-btn" onclick="suggestCarpool('${participant.name}', '${whatsappNum}'); closeParticipantBottomSheet();">
-                <span class="material-symbols-outlined">directions_car</span>
-                הצע נסיעה משותפת
-            </button>
-            ` : ''}
-        </div>
-    `;
-
-    participantBottomSheet.hidden = false; // Show the bottom sheet
-}
-
-// Function to close the bottom sheet
-function closeParticipantBottomSheet() {
-    participantBottomSheet.hidden = true; // Hide the bottom sheet
-}
-
-// Event listener for bottom sheet close button
-bottomSheetCloseBtn.addEventListener('click', closeParticipantBottomSheet);
-
-// Close bottom sheet on outside click (overlay)
-participantBottomSheet.addEventListener('click', (e) => {
-    if (e.target === participantBottomSheet) { // Only close if clicking the background, not the content
-        closeParticipantBottomSheet();
-    }
-});
-// --- End Bottom Sheet Logic ---
-
-
-// User management functions (updated to use bottom sheet where relevant)
+// פונקציות ניהול משתמשים
 window.editUser = function(idx) {
     if (!admin) {
-        ToastManager.show('Admin permission required', 'error');
+        ToastManager.show('נדרשת הרשאת מנהל', 'error');
         return;
     }
     
-    console.log(`✏️ Editing user: ${participants[idx].name}`);
+    console.log(`✏️ עריכת משתמש: ${participants[idx].name}`);
     editIdx = idx;
     const p = participants[idx];
     
@@ -357,53 +326,47 @@ window.editUser = function(idx) {
 
 window.deleteUser = function(idx) {
     if (!admin) {
-        ToastManager.show('Admin permission required', 'error');
+        ToastManager.show('נדרשת הרשאת מנהל', 'error');
         return;
     }
     
     const user = participants[idx];
-    // In a live app, use a custom modal dialog for confirmation instead of alert/confirm.
-    // For this example, only a console message will be printed.
-    // If you'd like a custom confirmation modal implementation, please let me know.
-    console.warn(`Delete request for ${user.name}. In a live app, a custom confirmation modal should be displayed here.`);
-    
-    // Proceed with the deletion logic
-    console.log(`🗑️ Deleting user: ${user.name}`);
+    if (confirm(`האם אתה בטוח שברצונך למחוק את ${user.name}?`)) {
+        console.log(`🗑️ מוחק משתמש: ${user.name}`);
 
-    const deletePayload = { id: user.name }; // Or another unique ID
-    
-    // Send delete request to Apps Script
-    fetch(SHEET_CONFIG.appsScriptUrl, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded' // Apps Script expects this format
-        },
-        body: JSON.stringify({ action: 'delete', payload: deletePayload })
-    })
-    .then(response => response.json())
-    .then(result => {
-        if (result.status === 'success') {
-            ToastManager.show(`${user.name} deleted successfully`);
-            GoogleSheetsSync.loadParticipants(); // Reload data so the map updates
-        } else {
-            ToastManager.show(`Error deleting: ${result.message}`, 'error');
-        }
-    })
-    .catch(error => {
-        console.error("❌ Error deleting user:", error);
-        ToastManager.show('Error deleting data. Please try again.', 'error');
-    });
+        const deletePayload = { id: user.name }; // אין SECRET_KEY בגרסה זו
+        
+        fetch(SHEET_CONFIG.appsScriptUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'text/plain;charset=utf-8'
+            },
+            body: JSON.stringify({ action: 'delete', payload: deletePayload })
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.status === 'success') {
+                ToastManager.show(`${user.name} נמחק בהצלחה`);
+                GoogleSheetsSync.loadParticipants(); // טען מחדש מה-Apps Script
+            } else {
+                ToastManager.show(`שגיאה במחיקה: ${result.message}`, 'error');
+            }
+        })
+        .catch(error => {
+            console.error("❌ שגיאה במחיקת משתמש:", error);
+            ToastManager.show('שגיאה במחיקת נתונים. נסה שוב.', 'error');
+        });
+    }
 };
 
-
 window.suggestCarpool = function(name, phone) {
-    console.log(`🚗 Suggesting carpool to: ${name}`);
-    const message = encodeURIComponent(`היי ${name}, רוצה לתאם נסיעה משותפת למשלחת מאיה לאוגנדה! 🚗✈️🇺🇬`);
+    console.log(`🚗 הצעת נסיעה משותפת ל: ${name}`);
+    const message = encodeURIComponent(`היי ${name}, אשמח לתאם נסיעה משותפת למשלחת מאיה לאוגנדה! 🚗`);
     window.open(`https://wa.me/972${phone.replace(/^0/,'')}?text=${message}`, '_blank');
 };
 
 
-// Admin system
+// מערכת אדמין
 function setAdminMode(isAdminMode) {
     admin = isAdminMode;
     const loginBtn = document.getElementById('admin-login-btn');
@@ -416,161 +379,47 @@ function setAdminMode(isAdminMode) {
         logoutBtn.style.display = 'flex';
         addBtn.style.display = 'block';
         adminControls.style.display = 'flex';
-        ToastManager.show('Logged in as admin successfully! 🔐');
+        ToastManager.show('התחברת כמנהל בהצלחה! 🔐');
     } else {
         loginBtn.style.display = 'flex';
         logoutBtn.style.display = 'none';
         addBtn.style.display = 'none';
         adminControls.style.display = 'none';
-        ToastManager.show('Logged out successfully! 👋');
+        ToastManager.show('התנתקת בהצלחה! 👋');
     }
     
-    renderMarkers();
+    GoogleSheetsSync.updateUI(); // השתמש ב-updateUI המאוחד
 }
 
-// --- Import functionality ---
-// Event listener for the import button to trigger the hidden file input
-document.getElementById('import-btn').addEventListener('click', () => {
-    if (!admin) {
-        ToastManager.show('נדרשת הרשאת מנהל', 'error');
-        return;
-    }
-    document.getElementById('file-input').click(); // Programmatically click the hidden file input
-});
+// טריוויה - פונקציות טריוויה הוסרו לחלוטין מ-JS
+/*
+function initTrivia() { ... }
+window.checkTrivia = function() { ... }
+*/
 
-// Event listener for when a file is selected in the file input
-document.getElementById('file-input').addEventListener('change', handleImport);
-
-/**
- * Handles the import of an Excel file, parses it, and sends the data to Google Apps Script.
- * @param {Event} event The change event from the file input.
- */
-async function handleImport(event) {
-    if (!admin) {
-        ToastManager.show('נדרשת הרשאת מנהל', 'error');
-        return;
-    }
-
-    const file = event.target.files[0];
-    if (!file) {
-        return; // No file selected
-    }
-
-    // Show loading status
-    // SyncStatus.update("טוען קובץ Excel...", false); // Removed visual update here
-    ToastManager.show("טוען קובץ Excel...");
-
-    const reader = new FileReader();
-    reader.onload = async function(e) {
-        try {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-
-            // Assuming the first sheet contains the participant data
-            const firstSheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[firstSheetName];
-            
-            // Convert sheet to JSON array of objects.
-            // This is typically the easiest format for Apps Script to consume.
-            // Using skipHeader: false to include headers in the JSON array.
-            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }); // Read as array of arrays first
-
-            if (jsonData.length === 0) {
-                ToastManager.show('קובץ Excel ריק או בפורמט לא תקין.', 'error');
-                // SyncStatus.update("שגיאה בייבוא קובץ", true); // Removed visual update here
-                return;
-            }
-
-            // Extract headers (first row) and actual data rows
-            const headers = jsonData[0];
-            const rowsToImport = jsonData.slice(1);
-
-            // Map rows to objects using headers as keys.
-            // This ensures data matches Google Sheet columns expected by Apps Script.
-            const participantsToImport = rowsToImport.map(row => {
-                const obj = {};
-                headers.forEach((header, index) => {
-                    // Trim whitespace from header and value, handle empty cells
-                    obj[header.trim()] = row[index] ? String(row[index]).trim() : '';
-                });
-                return obj;
-            }).filter(obj => obj['שם פרטי'] && obj['שם משפחה']); // Filter out rows without basic info
-
-            if (participantsToImport.length === 0) {
-                ToastManager.show('לא נמצאו משתתפים חוקיים בקובץ Excel.', 'error');
-                // SyncStatus.update("שגיאה בייבוא קובץ", true); // Removed visual update here
-                return;
-            }
-
-            console.log("Parsed Excel data for import:", participantsToImport);
-            // SyncStatus.update("שולח נתונים לשרת...", false); // Removed visual update here
-
-            // Send the parsed data to Google Apps Script with an 'import' action
-            const response = await fetch(SHEET_CONFIG.appsScriptUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'text/plain;charset=utf-8' // Apps Script expects this format
-                },
-                body: JSON.stringify({ action: 'import', payload: participantsToImport })
-            });
-
-            const result = await response.json();
-
-            if (result.status === 'success') {
-                ToastManager.show(`קובץ נתונים יובא בהצלחה! ${result.message || ''}`);
-                await GoogleSheetsSync.loadParticipants(); // Reload map data after successful import
-            } else {
-                ToastManager.show(`שגיאה בייבוא קובץ: ${result.message || 'נסה שוב.'}`, 'error');
-                // SyncStatus.update("שגיאה בייבוא קובץ", true); // Removed visual update here
-            }
-
-        } catch (error) {
-            console.error("❌ Error processing Excel file:", error);
-            ToastManager.show('שגיאה בעיבוד קובץ Excel. ודא שהפורמט נכון.', 'error');
-            // SyncStatus.update("שגיאה בעיבוד קובץ", true); // Removed visual update here
-        } finally {
-            // Clear the file input so the same file can be selected again (important for 'change' event)
-            event.target.value = ''; 
-        }
-    };
-    reader.readAsArrayBuffer(file); // Read the file as an ArrayBuffer for XLSX.js
-}
-// --- End Import functionality ---
-
-
-// Event listeners
+// מאזיני אירועים
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize systems
-    SyncStatus.init(); // SyncStatus will still be initialized, but will not update non-existent element
-
-    // Map initialization (moved inside DOMContentLoaded)
-    map = L.map('map').setView([31.5, 34.75], 8);
-
-    // NEW: Initialize Google Mutant with your API key
-    const googleLayer = L.gridLayer.googleMutant({
-        type: 'roadmap', // You can change this to 'satellite', 'terrain', or 'hybrid'
-        maxZoom: 20,
-        attribution: '© Google Maps' // Attribution to display on the map
-    });
-    googleLayer.addTo(map); // Add the Google Maps layer to the map
-
-    markers = L.markerClusterGroup(); // Initialize markers group here
-
-    // Initial load
+    // אתחול מערכות
+    SyncStatus.init();
+    // initTrivia(); // הוסר
+    
+    // טעינה ראשונית
     GoogleSheetsSync.loadParticipants();
+    GoogleSheetsSync.loadTrivia(); // קריאה נשמרת למקרה שיופעל משהו הקשור לטריוויה בעתיד
     GoogleSheetsSync.startAutoSync();
     
-    // Admin login button
+    // כפתור כניסת אדמין
     document.getElementById('admin-login-btn').addEventListener('click', () => {
         document.getElementById('admin-login-modal').hidden = false;
         document.getElementById('admin-password').focus();
     });
     
+    // כפתור יציאת אדמין
     document.getElementById('admin-logout-btn').addEventListener('click', () => {
         setAdminMode(false);
     });
     
-    // Admin login form
+    // טופס כניסת אדמין
     document.getElementById('admin-login').addEventListener('click', () => {
         const password = document.getElementById('admin-password').value;
         
@@ -579,22 +428,24 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('admin-login-modal').hidden = true;
             document.getElementById('admin-password').value = '';
         } else {
-            ToastManager.show('Incorrect password!', 'error');
+            ToastManager.show('סיסמה שגויה!', 'error');
             document.getElementById('admin-password').value = '';
         }
     });
     
     document.getElementById('admin-cancel').addEventListener('click', () => {
         document.getElementById('admin-login-modal').hidden = true;
+        document.getElementById('admin-password').value = '';
     });
     
-    // Manual sync button
+    // כפתור סנכרון ידני
     document.getElementById('sync-btn').addEventListener('click', () => {
         if (!admin) return;
         GoogleSheetsSync.loadParticipants();
+        GoogleSheetsSync.loadTrivia();
     });
     
-    // Add user button
+    // כפתור הוספת משתמש
     document.getElementById('add-user-btn').addEventListener('click', () => {
         if (!admin) return;
         
@@ -608,12 +459,12 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('user-form-modal').hidden = false;
     });
     
-    // Cancel user form
+    // ביטול טופס משתמש
     document.getElementById('user-cancel').addEventListener('click', () => {
         document.getElementById('user-form-modal').hidden = true;
     });
     
-    // Save user
+    // שמירת משתמש
     document.getElementById('user-save').addEventListener('click', async () => {
         if (!admin) return;
         
@@ -624,21 +475,22 @@ document.addEventListener('DOMContentLoaded', function() {
         const whatsapp = document.getElementById('user-whatsapp').value.trim();
         
         if (!firstName || !lastName || !city || !phone) {
-            ToastManager.show('Please fill in all required fields', 'error');
+            ToastManager.show('אנא מלא את כל השדות הנדרשים', 'error');
             return;
         }
         
         const fullName = `${firstName} ${lastName}`;
         
-        // User data to be sent to Apps Script, adapted to sheet headers
+        // במקום להוסיף למערך המקומי, נשלח ל-Apps Script
         const userData = {
             'שם פרטי': firstName,
             'שם משפחה': lastName,
             'עיר': city,
             'מספר טלפון': phone,
             'מספר ווצאפ': whatsapp,
-            'Lat': (editIdx !== null) ? participants[editIdx].lat : null,
-            'Lon': (editIdx !== null) ? participants[editIdx].lon : null,
+            // 'Lat' ו-'Lon' לא נשלחים ישירות מכאן, הם יחושבו אוטומטית ב-Apps Script
+            'Lat': (editIdx !== null) ? participants[editIdx].lat : null, // נשמור אם עורכים
+            'Lon': (editIdx !== null) ? participants[editIdx].lon : null, // נשמור אם עורכים
         };
 
         let action = 'add';
@@ -649,38 +501,38 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             const saveBtn = document.getElementById('user-save');
             saveBtn.disabled = true;
-            saveBtn.innerHTML = '<span class="material-symbols-outlined">autorenew</span> Saving...';
+            saveBtn.innerHTML = '<span class="material-symbols-outlined">autorenew</span> שומר...';
 
             const response = await fetch(SHEET_CONFIG.appsScriptUrl, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'text/plain;charset=utf-8'
+                    'Content-Type': 'text/plain;charset=utf-8' // חשוב להגדיר את זה
                 },
-                body: JSON.stringify({ action, payload: userData })
+                body: JSON.stringify({ action: action, payload: userData })
             });
 
             const result = await response.json();
 
             if (result.status === 'success') {
-                ToastManager.show(`${fullName} ${action === 'add' ? 'added' : 'updated'} successfully!`);
-                await GoogleSheetsSync.loadParticipants();  
+                ToastManager.show(`${fullName} ${action === 'add' ? 'נוסף' : 'עודכן'} בהצלחה!`);
+                await GoogleSheetsSync.loadParticipants(); // טען מחדש מה-Apps Script
             } else {
-                ToastManager.show(`Error saving: ${result.message}`, 'error');
+                ToastManager.show(`שגיאה בשמירה: ${result.message}`, 'error');
             }
             
             document.getElementById('user-form-modal').hidden = true;
-            editIdx = null; // Reset
+            editIdx = null; // איפוס
         } catch (err) {
-            console.error("❌ Error saving user:", err);
-            ToastManager.show('Error saving data. Please try again.', 'error');
+            console.error("❌ שגיאה בשמירת משתמש:", err);
+            ToastManager.show('שגיאה בשמירת נתונים. נסה שוב.', 'error');
         } finally {
             const saveBtn = document.getElementById('user-save');
             saveBtn.disabled = false;
-            saveBtn.innerHTML = '<span class="material-symbols-outlined">save</span> Save';
+            saveBtn.innerHTML = '<span class="material-symbols-outlined">save</span> שמירה';
         }
     });
     
-    // Search
+    // חיפוש
     document.getElementById('search-input').addEventListener('input', function() {
         const val = this.value.trim().toLowerCase();
         
@@ -690,27 +542,22 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         const filtered = participants.filter(p =>
-            p.name.toLowerCase().includes(val) ||
-            p.city.toLowerCase().includes(val) ||
+            p.name.toLowerCase().includes(val) || 
+            p.city.toLowerCase().includes(val) || 
             p.phone.includes(val)
         );
         
         renderMarkers(filtered);
     });
     
-    // Close modals on outside click
+    // סגירת מודלים בלחיצה חיצונית
     window.addEventListener('click', (e) => {
-        // Close admin login modal if clicked outside its content
-        if (e.target === document.getElementById('admin-login-modal')) { // Only close if clicking the modal background itself
-            document.getElementById('admin-login-modal').hidden = true;
-        }
-        // Close user form modal if clicked outside its content
-        if (e.target === document.getElementById('user-form-modal')) { // Only close if clicking the modal background itself
-            document.getElementById('user-form-modal').hidden = true;
+        if (e.target.classList.contains('modal')) {
+            e.target.hidden = true;
         }
     });
     
-    // Adjust map to window size
+    // התאמת מפה לגודל החלון
     window.addEventListener('resize', () => {
         map.invalidateSize();
     });
@@ -719,19 +566,16 @@ document.addEventListener('DOMContentLoaded', function() {
         map.invalidateSize();
     }, 500);
 
-    // Logic for the "Reset map" button (its name was updated in HTML)
+    // כפתור "איפוס מפה" (נשמר)
     document.getElementById('reset-map-btn').addEventListener('click', () => {
-        map.setView([31.5, 34.75], 8); // Return to initial location and zoom (Israel, zoom 8)
-        ToastManager.show('Map view reset to normal size! 🌍'); // Update message
+        map.setView([31.5, 34.75], 8);
+        ToastManager.show('תצוגת המפה אופסה! 🌍');
     });
 });
 
-// Cleanup when the application closes
+// ניקוי בסגירת האפליקציה
 window.addEventListener('beforeunload', () => {
     GoogleSheetsSync.stopAutoSync();
 });
 
-// This is the very last line of the script. Do NOT cut this off.
-console.log("✅ Maya App connected to Google Sheets ready for use!");
-
-// --- END OF script.js FILE ---
+console.log("✅ אפליקציית מאיה מחוברת לגוגל שיטס מוכנה לשימוש!");

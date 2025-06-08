@@ -10,15 +10,16 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
     <link rel="stylesheet" href="./style.css">
-    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCEo0QBID_qOEivVCmbcg8Z_YYY4cIjwj0"></script>
 </head>
 <body>
     <div id="app-container">
         <header class="header">
+            <!-- כפתור אדמין בפינה השמאלית העליונה -->
             <button id="admin-login-btn" class="admin-fab" title="כניסת אדמין">
                 <span class="material-symbols-outlined">admin_panel_settings</span>
             </button>
             
+            <!-- כפתור יציאה לאדמין -->
             <button id="admin-logout-btn" class="admin-fab logout-btn" title="התנתק" style="display: none;">
                 <span class="material-symbols-outlined">logout</span>
             </button>
@@ -32,6 +33,11 @@
             <div class="subtitle">מחברים בין חברים</div>
         </header>
 
+        <!-- טריוויה - הוסרה -->
+        <!-- <button id="trivia-btn">טריוויה מאוגנדה</button> -->
+        <!-- <div id="trivia-box"></div> -->
+
+        <!-- חיפוש -->
         <div class="search-container">
             <div class="search-box">
                 <span class="material-symbols-outlined search-icon">search</span>
@@ -39,6 +45,7 @@
             </div>
         </div>
 
+        <!-- כפתורי ניהול אדמין -->
         <div id="admin-controls" class="admin-controls" style="display: none;">
             <button id="import-btn" class="admin-control-btn">
                 <span class="material-symbols-outlined">upload_file</span>
@@ -54,6 +61,7 @@
             </button>
         </div>
 
+        <!-- מפה -->
         <div class="map-container">
             <div id="map"></div>
             <div class="participant-count">
@@ -62,18 +70,26 @@
             <button id="add-user-btn" class="fab add-fab" style="display: none;" title="הוסף משתמש">
                 <span class="material-symbols-outlined">add</span>
             </button>
-            <button id="reset-map-btn" class="fab reset-fab" title="חזור לגודל רגיל במפה">
+            <!-- כפתור "איפוס מפה" -->
+            <button id="reset-map-btn" class="fab reset-fab" title="אפס תצוגת מפה">
                 <span class="material-symbols-outlined">my_location</span>
             </button>
         </div>
 
+        <!-- סטטוס סנכרון -->
+        <div id="sync-status" class="sync-status">
+            <span class="material-symbols-outlined sync-icon">cloud_sync</span>
+            <span id="sync-text">מתחבר לגוגל שיטס...</span>
         </div>
+    </div>
 
+    <!-- קלט חבוי ליבוא קבצים -->
     <input type="file" id="file-input" accept=".csv,.xlsx,.xls" style="display: none;">
 
+    <!-- Modal כניסת אדמין -->
     <div id="admin-login-modal" class="modal" hidden>
         <div class="modal-content">
-            <h3>🔑 כניסת מנהל</h3>
+            <h3>🔐 כניסת מנהל</h3>
             <div class="form-group">
                 <input type="password" class="form-input" placeholder="סיסמה" id="admin-password">
             </div>
@@ -90,6 +106,7 @@
         </div>
     </div>
 
+    <!-- Modal הוספת/עריכת משתמש -->
     <div id="user-form-modal" class="modal" hidden>
         <div class="modal-content">
             <h3 id="user-form-title">➕ הוסף משתתף</h3>
@@ -121,21 +138,12 @@
         </div>
     </div>
 
-    <div id="participant-details-bottom-sheet" class="bottom-sheet" hidden>
-        <div class="bottom-sheet-content">
-            <button class="bottom-sheet-close-btn" title="סגור">
-                <span class="material-symbols-outlined">close</span>
-            </button>
-            <div id="bottom-sheet-details">
-                </div>
-        </div>
-    </div>
-
+    <!-- הודעות מערכת -->
     <div id="toast-container" class="toast-container"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-    <script src="https://unpkg.com/leaflet.googlemutant@0.10.0/Leaflet.GoogleMutant.js"></script> <script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="./script.js"></script>
 </body>
 </html>
