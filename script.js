@@ -376,7 +376,7 @@ window.deleteUser = function(idx) {
     fetch(SHEET_CONFIG.appsScriptUrl, {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/x-www-form-urlencoded' // Apps Script expects this format
+            'Content-Type': 'text/plain;charset=utf-8' // Apps Script expects this format
         },
         body: JSON.stringify({ action: 'delete', payload: deletePayload })
     })
