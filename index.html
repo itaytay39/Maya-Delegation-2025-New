@@ -643,7 +643,7 @@
             
             <div class="logo-container">
                 <div class="logo-maya">
-                    <img src="https://itaytay39.github.io/Maya-Delegation-to-Uganda1/logo.jpg" alt="מאיה משלחת לאוגנדה" onerror="this.src='https://placehold.co/140x140/FFFFFF/A0B939?text=Logo'">
+                    <img src="logo.png" alt="מאיה משלחת לאוגנדה">
                 </div>
             </div>
             <div class="title">מאיה - משלחת לאוגנדה</div>
@@ -1110,7 +1110,7 @@
                                     צור קשר
                                 </a>
                                 ${hasWhatsapp ? `
-                                <a href="https://wa.me/972${whatsappNum.replace(/^0/,'')}" class="popup-btn whatsapp" target="_blank">
+                                <a href="https://wa.me/972${whatsappNum.replace(/^0/,'')}?text=${message}" class="popup-btn whatsapp" target="_blank">
                                     <span class="material-symbols-outlined">chat</span>
                                     וואטסאפ
                                 </a>
@@ -1165,14 +1165,15 @@
         window.deleteUser = function(idx) {
             return AdminGuard.requireAdmin(() => {
                 const user = participants[idx];
-                if (confirm(`האם אתה בטוח שברצונך למחוק את ${user.name}?`)) {
+                // Using a custom modal/dialog instead of alert/confirm
+                showConfirmationDialog(`האם אתה בטוח שברצונך למחוק את ${user.name}?`, () => {
                     console.log(`🗑️ מוחק משתמש: ${user.name}`);
                     participants.splice(idx, 1);
                     StorageManager.save();
                     renderMarkers();
                     updateParticipantCount();
                     ToastManager.show(`${user.name} נמחק בהצלחה`);
-                }
+                });
             });
         };
 
@@ -1181,6 +1182,50 @@
             const message = encodeURIComponent(`היי ${name}, רוצה לתאם נסיעה משותפת למשלחת מאיה לאוגנדה? 🚗✈️🇺🇸`);
             window.open(`https://wa.me/972${phone.replace(/^0/,'')}?text=${message}`, '_blank');
         };
+
+        // Custom Confirmation Dialog (Replaces confirm())
+        function showConfirmationDialog(message, onConfirm) {
+            const dialogId = 'custom-confirm-dialog';
+            let dialog = document.getElementById(dialogId);
+
+            if (!dialog) {
+                dialog = document.createElement('div');
+                dialog.id = dialogId;
+                dialog.className = 'modal';
+                dialog.innerHTML = `
+                    <div class="modal-content">
+                        <h3 id="confirm-message"></h3>
+                        <div class="button-group">
+                            <button class="btn btn-primary" id="confirm-yes">כן</button>
+                            <button class="btn btn-secondary" id="confirm-no">לא</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(dialog);
+            }
+
+            document.getElementById('confirm-message').textContent = message;
+            dialog.hidden = false;
+
+            const confirmYes = document.getElementById('confirm-yes');
+            const confirmNo = document.getElementById('confirm-no');
+
+            const cleanUp = () => {
+                confirmYes.onclick = null;
+                confirmNo.onclick = null;
+                dialog.hidden = true;
+            };
+
+            confirmYes.onclick = () => {
+                onConfirm();
+                cleanUp();
+            };
+
+            confirmNo.onclick = () => {
+                cleanUp();
+            };
+        }
+
 
         // ניהול מצב אדמין מתקדם
         function setAdminMode(isAdminMode) {
@@ -1385,7 +1430,7 @@
                     saveBtn.disabled = true;
                     saveBtn.innerHTML = '<span class="material-symbols-outlined">autorenew</span> שומר...';
                     
-                    console.log(`💾 שומר משתמש: ${name} מ${city}`);
+                    console.log(`� שומר משתמש: ${name} מ${city}`);
                     const { lat, lon } = await geocodeCity(city);
                     
                     if (editIdx !== null) {
@@ -1489,3 +1534,4 @@
     </script>
 </body>
 </html>
+�
