@@ -7,7 +7,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-    <!-- Leaflet MarkerCluster CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
     
@@ -82,13 +81,6 @@
 
         .logo-maya:hover {
             transform: scale(1.05);
-        }
-
-        .logo-maya img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            display: block;
         }
 
         .admin-fab {
@@ -634,14 +626,11 @@
 </head>
 <body>
     <div id="app-container">
-        <!-- Header -->
         <header class="header">
-            <!-- כפתור אדמין בפינה השמאלית העליונה -->
             <button id="admin-login-btn" class="admin-fab" title="כניסת אדמין">
                 <span class="material-symbols-outlined">admin_panel_settings</span>
             </button>
             
-            <!-- כפתור יציאה לאדמין -->
             <button id="admin-logout-btn" class="admin-fab logout-btn" title="התנתק" style="display: none;">
                 <span class="material-symbols-outlined">logout</span>
             </button>
@@ -655,7 +644,6 @@
             <div class="subtitle">מחברים בין חברים</div>
         </header>
 
-        <!-- חיפוש -->
         <div class="search-container">
             <div class="search-box">
                 <span class="material-symbols-outlined search-icon">search</span>
@@ -663,7 +651,6 @@
             </div>
         </div>
 
-        <!-- כפתורי ניהול אדמין -->
         <div id="admin-controls" class="admin-controls" style="display: none;">
             <button id="import-btn" class="admin-control-btn">
                 <span class="material-symbols-outlined">upload_file</span>
@@ -673,13 +660,11 @@
                 <span class="material-symbols-outlined">download</span>
                 יצוא ל-Excel
             </button>
-            <button id="sync-btn" class="admin-control-btn"> <!-- New Sync Button -->
-                <span class="material-symbols-outlined">sync</span>
+            <button id="sync-btn" class="admin-control-btn"> <span class="material-symbols-outlined">sync</span>
                 סנכרן מגיליון
             </button>
         </div>
 
-        <!-- מפה -->
         <div class="map-container">
             <div id="map"></div>
             <div class="participant-count">
@@ -688,17 +673,14 @@
             <button id="add-user-btn" class="fab add-fab" style="display: none;" title="הוסף משתמש">
                 <span class="material-symbols-outlined">add</span>
             </button>
-            <!-- New FAB for resetting map view -->
             <button id="reset-view-fab" class="fab reset-view-fab" title="מרכז מפה">
                 <span class="material-symbols-outlined">explore</span>
             </button>
         </div>
     </div>
 
-    <!-- קלט חבוי ליבוא קבצים -->
     <input type="file" id="file-input" accept=".csv,.xlsx,.xls" style="display: none;">
 
-    <!-- Modal כניסת אדמין -->
     <div id="admin-login-modal" class="modal" hidden>
         <div class="modal-content">
             <h3>🔐 כניסת מנהל</h3>
@@ -718,7 +700,6 @@
         </div>
     </div>
 
-    <!-- Modal הוספת/עריכת משתמש -->
     <div id="user-form-modal" class="modal" hidden>
         <div class="modal-content">
             <h3 id="user-form-title">➕ הוסף משתתף</h3>
@@ -747,18 +728,16 @@
         </div>
     </div>
 
-    <!-- הודעות מערכת -->
     <div id="toast-container" class="toast-container"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <!-- Leaflet MarkerCluster JS -->
     <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
     <script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     
     <script>
         // Ensure all global variables and functions are declared at the top scope
         let participants = [
-            // Original sample data
+            // Original sample data - These will be overridden by Google Sheet data
             {name: 'נועה בר', city: 'תל אביב', lat: 32.0853, lon: 34.7818, phone: '0501111111', whatsapp: '0501111111'},
             {name: 'דוד לוי', city: 'חיפה', lat: 32.7940, lon: 34.9896, phone: '0522222222', whatsapp: '0522222222'},
             {name: 'רוני ישראלי', city: 'ירושלים', lat: 31.7683, lon: 35.2137, phone: '0533333333', whatsapp: '0533333333'},
@@ -949,7 +928,10 @@
         }
 
         // --- Start of Google Sheets Sync object (as per original script.js) ---
-        const SHEET_CONFIG = { participantsUrl: 'https://docs.google.com/spreadsheets/d/1zunKbBVc74mtXfXkHjMDvQSpbu9n2PSasrxQ1CsRmvg/gviz/tq?tqx=out:csv', syncInterval: 60000 };
+        const SHEET_CONFIG = { 
+            participantsUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT5-QyAGcqlBZuNv2vMCnlNAxAo3IOhkC5p7jgotCi55cvApP-HW61LZsZwbjffKqjnQvxzCa56BULY/pub?gid=0&single=true&output=csv', 
+            syncInterval: 60000 
+        };
         let syncTimer = null; // Defined here for global accessibility
 
         const GoogleSheetsSync = {
