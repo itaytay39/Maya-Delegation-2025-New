@@ -534,7 +534,7 @@
         }
 
         .popup-btn:hover {
-            transform: translateY(-2px);
+            transform: scale(1.1);
             box-shadow: var(--md-shadow-lg);
         }
 
@@ -576,6 +576,11 @@
         @keyframes slideOut {
             from { transform: translateX(0); opacity: 1; }
             to { transform: translateX(100%); opacity: 0; }
+        }
+        /* CSS for spin animation for sync button */
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
 
         /* רספונסיביות */
@@ -643,7 +648,7 @@
             
             <div class="logo-container">
                 <div class="logo-maya">
-                    <img src="https://itaytay39.github.io/Maya-Delegation-to-Uganda1/logo.jpg" alt="מאיה משלחת לאוגנדה" onerror="this.src='https://placehold.co/140x140/FFFFFF/A0B939?text=Logo'">
+                    <img src="logo.png" alt="מאיה משלחת לאוגנדה" onerror="this.src='https://placehold.co/140x140/FFFFFF/A0B939?text=Logo'">
                 </div>
             </div>
             <div class="title">מאיה - משלחת לאוגנדה</div>
@@ -667,6 +672,10 @@
             <button id="export-btn" class="admin-control-btn">
                 <span class="material-symbols-outlined">download</span>
                 יצוא ל-Excel
+            </button>
+            <button id="sync-btn" class="admin-control-btn"> <!-- New Sync Button -->
+                <span class="material-symbols-outlined">sync</span>
+                סנכרן מגיליון
             </button>
         </div>
 
@@ -902,7 +911,8 @@
         const searchInput = document.getElementById('search-input');
         const participantCount = document.getElementById('participant-count');
         const fileInput = document.getElementById('file-input');
-        const cityFilter = document.getElementById('city-filter');
+        // cityFilter not present in HTML, keeping for now if it's meant for a future feature
+        const cityFilter = document.getElementById('city-filter'); 
 
         // פונקציות עזר (גלובליות)
         function distance(lat1, lon1, lat2, lon2) {
@@ -945,15 +955,19 @@
         const GoogleSheetsSync = {
             async loadData(isManual = false) {
                 const url = `${SHEET_CONFIG.participantsUrl}&t=${new Date().getTime()}`;
-                if(document.getElementById('sync-btn')?.querySelector('.material-symbols-outlined')) {
-                    document.getElementById('sync-btn').querySelector('.material-symbols-outlined').style.animation = 'spin 1s linear infinite';
+                const syncButtonIcon = document.getElementById('sync-btn')?.querySelector('.material-symbols-outlined');
+                if(syncButtonIcon) {
+                    syncButtonIcon.style.animation = 'spin 1s linear infinite';
                 }
                 try {
                     const response = await fetch(url);
                     if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
                     const csvText = await response.text();
                     const rows = this.parseCSV(csvText);
-                    if (rows.length < 2) throw new Error('No data or only headers in sheet');
+                    if (rows.length < 2) { // Only headers or no data
+                        if (isManual) ToastManager.show('גיליון גוגל ריק או מכיל רק כותרות. לא טענתי נתונים חדשים.', 'warning');
+                        return; // Exit without changing participants
+                    }
                     
                     const headers = rows[0].map(h => h.trim()); 
                     const fetchedParticipants = rows.slice(1).map(row => {
@@ -975,20 +989,25 @@
                         };
                     }).filter(p => p.name && p.lat !== null && p.lon !== null); 
 
-                    window.participants = fetchedParticipants; 
-                    StorageManager.save(); 
-                    if (isManual) ToastManager.show(`סונכרנו ${window.participants.length} משתתפים מגיליון גוגל.`, 'success');
-                    populateCityFilter(); // Global function
-                    renderMarkers(); // Global function
-                    updateParticipantCount(); // Global function
+                    if (fetchedParticipants.length > 0) {
+                        window.participants = fetchedParticipants; 
+                        StorageManager.save(); 
+                        if (isManual) ToastManager.show(`סונכרנו ${window.participants.length} משתתפים מגיליון גוגל.`, 'success');
+                        // Ensure cityFilter is defined before calling populateCityFilter
+                        if (cityFilter) populateCityFilter(); 
+                        renderMarkers(); 
+                        updateParticipantCount(); 
+                    } else {
+                        if (isManual) ToastManager.show('לא נמצאו משתתפים חוקיים בגיליון גוגל. לא טענתי נתונים חדשים.', 'warning');
+                    }
                     
                 } catch (error) {
                     console.error("❌ Data load error from Google Sheet:", error);
                     ToastManager.show(`שגיאה בטעינת נתונים מגיליון גוגל: ${error.message}`, 'error');
-                    throw error; 
+                    // Do NOT re-throw, just handle locally
                 } finally {
-                     if(document.getElementById('sync-btn')?.querySelector('.material-symbols-outlined')) {
-                         document.getElementById('sync-btn').querySelector('.material-symbols-outlined').style.animation = '';
+                     if(syncButtonIcon) {
+                         syncButtonIcon.style.animation = '';
                      }
                 }
             },
@@ -1017,7 +1036,11 @@
                 }
                 return '0' + cleaned.slice(-9); 
             },
-            updateUI() { populateCityFilter(); renderMarkers(); updateParticipantCount(); }, 
+            updateUI() { 
+                if (cityFilter) populateCityFilter(); // Check if cityFilter exists before calling
+                renderMarkers(); 
+                updateParticipantCount(); 
+            }, 
             startAutoSync() { this.stopAutoSync(); syncTimer = setInterval(() => this.loadData(false), SHEET_CONFIG.syncInterval); }, // Uses global syncTimer
             stopAutoSync() { if (syncTimer) clearInterval(syncTimer); } // Uses global syncTimer
         };
@@ -1025,6 +1048,11 @@
 
 
         function populateCityFilter() { 
+            // Check if cityFilter element actually exists in the HTML before trying to use it
+            if (!cityFilter) {
+                console.warn("Element with ID 'city-filter' not found. Skipping populateCityFilter.");
+                return;
+            }
             const cities = [...new Set(participants.map(user => user.city))].sort((a,b) => a.localeCompare(b, 'he')); 
             const currentCity = cityFilter.value; 
             cityFilter.innerHTML = '<option value="">כל הערים</option>'; 
@@ -1093,6 +1121,9 @@
                         }
                     }
 
+                    // Define message for carpool in scope for whatsapp link
+                    const message = encodeURIComponent(`היי ${p.name}, רוצה לתאם נסיעה משותפת למשלחת מאיה לאוגנדה? 🚗✈️🇺🇸`);
+
                     const popup = `
                         <div class="popup-box">
                             <div class="popup-name">
@@ -1110,7 +1141,7 @@
                                     צור קשר
                                 </a>
                                 ${hasWhatsapp ? `
-                                <a href="https://wa.me/972${whatsappNum.replace(/^0/,'')}" class="popup-btn whatsapp" target="_blank">
+                                <a href="https://wa.me/972${whatsappNum.replace(/^0/,'')}?text=${message}" class="popup-btn whatsapp" target="_blank">
                                     <span class="material-symbols-outlined">chat</span>
                                     וואטסאפ
                                 </a>
@@ -1165,14 +1196,15 @@
         window.deleteUser = function(idx) {
             return AdminGuard.requireAdmin(() => {
                 const user = participants[idx];
-                if (confirm(`האם אתה בטוח שברצונך למחוק את ${user.name}?`)) {
+                // Using a custom modal/dialog instead of alert/confirm
+                showConfirmationDialog(`האם אתה בטוח שברצונך למחוק את ${user.name}?`, () => {
                     console.log(`🗑️ מוחק משתמש: ${user.name}`);
                     participants.splice(idx, 1);
                     StorageManager.save();
                     renderMarkers();
                     updateParticipantCount();
                     ToastManager.show(`${user.name} נמחק בהצלחה`);
-                }
+                });
             });
         };
 
@@ -1181,6 +1213,50 @@
             const message = encodeURIComponent(`היי ${name}, רוצה לתאם נסיעה משותפת למשלחת מאיה לאוגנדה? 🚗✈️🇺🇸`);
             window.open(`https://wa.me/972${phone.replace(/^0/,'')}?text=${message}`, '_blank');
         };
+
+        // Custom Confirmation Dialog (Replaces confirm())
+        function showConfirmationDialog(message, onConfirm) {
+            const dialogId = 'custom-confirm-dialog';
+            let dialog = document.getElementById(dialogId);
+
+            if (!dialog) {
+                dialog = document.createElement('div');
+                dialog.id = dialogId;
+                dialog.className = 'modal';
+                dialog.innerHTML = `
+                    <div class="modal-content">
+                        <h3 id="confirm-message"></h3>
+                        <div class="button-group">
+                            <button class="btn btn-primary" id="confirm-yes">כן</button>
+                            <button class="btn btn-secondary" id="confirm-no">לא</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(dialog);
+            }
+
+            document.getElementById('confirm-message').textContent = message;
+            dialog.hidden = false;
+
+            const confirmYes = document.getElementById('confirm-yes');
+            const confirmNo = document.getElementById('confirm-no');
+
+            const cleanUp = () => {
+                confirmYes.onclick = null;
+                confirmNo.onclick = null;
+                dialog.hidden = true;
+            };
+
+            confirmYes.onclick = () => {
+                onConfirm();
+                cleanUp();
+            };
+
+            confirmNo.onclick = () => {
+                cleanUp();
+            };
+        }
+
 
         // ניהול מצב אדמין מתקדם
         function setAdminMode(isAdminMode) {
@@ -1344,6 +1420,14 @@
             }
         });
 
+        // Sync from Google Sheet button
+        document.getElementById('sync-btn').addEventListener('click', () => {
+            return AdminGuard.requireAdmin(() => {
+                console.log("🔄 מנסה לסנכרן מגיליון גוגל");
+                GoogleSheetsSync.loadData(true); // Pass true for manual sync to show more detailed toasts
+            });
+        });
+
         // הוספת משתמש
         addBtn.addEventListener('click', () => {
             return AdminGuard.requireAdmin(() => {
@@ -1451,6 +1535,10 @@
             StorageManager.save(); // שמירה ראשונית
         }
 
+        // Initial load from Google Sheets and start auto-sync
+        GoogleSheetsSync.loadData(true); // Attempt initial sync on load, show toasts
+        GoogleSheetsSync.startAutoSync(); // Start periodic sync
+
         renderMarkers();
         updateParticipantCount();
         console.log("✅ אפליקציית מאיה מוכנה לשימוש!");
@@ -1460,6 +1548,11 @@
         @keyframes slideOut {
             from { transform: translateX(0); opacity: 1; }
             to { transform: translateX(100%); opacity: 0; }
+        }
+        /* CSS for spin animation for sync button */
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
         `;
         const style = document.createElement('style');
