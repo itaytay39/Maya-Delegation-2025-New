@@ -11,9 +11,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
     
     <style>
-        :root {
-            --md-primary: #6366f1; --md-secondary: #8b5cf6; --md-success: #10b981; --md-error: #ef4444; --md-warning: #f59e0b; --md-surface: #ffffff; --md-background: #f8fafc; --md-text: #1e293b; --md-border: #e2e8f0; --md-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); --md-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); --md-radius: 24px; --md-transition: 0.2s cubic-bezier(0.4,0,0.2,1);
-        }
+        :root { --md-primary: #6366f1; --md-secondary: #8b5cf6; --md-success: #10b981; --md-error: #ef4444; --md-warning: #f59e0b; --md-surface: #ffffff; --md-background: #f8fafc; --md-text: #1e293b; --md-border: #e2e8f0; --md-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); --md-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); --md-radius: 24px; --md-transition: 0.2s cubic-bezier(0.4,0,0.2,1); }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Heebo', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; direction: rtl; color: var(--md-text); }
         #app-container { max-width: 480px; margin: 0 auto; background: var(--md-background); min-height: 100vh; position: relative; overflow-x: hidden; }
@@ -36,6 +34,10 @@
         .search-input { flex: 1; border: none; outline: none; font-size: 1rem; color: var(--md-text); background: transparent; }
         .map-container { height: 60vh; margin: 1rem; border-radius: var(--md-radius); overflow: hidden; box-shadow: var(--md-shadow-lg); position: relative; }
         #map { height: 100%; width: 100%; }
+        .map-loader { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); backdrop-filter: blur(5px); z-index: 1001; display: flex; align-items: center; justify-content: center; transition: opacity 0.3s ease; }
+        .map-loader.hidden { opacity: 0; pointer-events: none; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .spinner { width: 50px; height: 50px; border: 5px solid var(--md-border); border-top-color: var(--md-primary); border-radius: 50%; animation: spin 1s linear infinite; }
         .participant-count { position: absolute; top: 1rem; right: 1rem; background: rgba(255,255,255,0.95); padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.875rem; font-weight: 500; color: var(--md-text); backdrop-filter: blur(10px); box-shadow: var(--md-shadow); }
         .fab { position: absolute; width: 60px; height: 60px; border-radius: 50%; border: none; color: white; box-shadow: var(--md-shadow-lg); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; transition: all 0.3s ease; z-index: 1000; }
         .add-fab { bottom: 1rem; left: 1rem; background: linear-gradient(135deg, var(--md-success), #059669); }
@@ -52,14 +54,15 @@
         .form-input:focus { outline: none; border-color: var(--md-primary); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
         .button-group { display: flex; gap: 0.75rem; margin-top: 1.5rem; }
         .btn { flex: 1; padding: 0.75rem 1rem; border: none; border-radius: 12px; font-size: 1rem; font-weight: 500; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-family: 'Heebo', sans-serif; }
+        .btn:disabled { background: #9ca3af; cursor: not-allowed; transform: none; box-shadow: none; }
         .btn-primary { background: linear-gradient(135deg, var(--md-primary), var(--md-secondary)); color: white; }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4); }
+        .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4); }
         .btn-secondary { background: var(--md-border); color: var(--md-text); }
-        .btn-secondary:hover { background: #cbd5e1; }
+        .btn-secondary:hover:not(:disabled) { background: #cbd5e1; }
         .leaflet-popup-content-wrapper { padding: 0 !important; border-radius: 16px !important; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2) !important; background: var(--md-surface) !important; margin-top: 10px !important; }
         .leaflet-popup-content { margin: 0 !important; min-width: 260px; max-width: 300px; font-family: 'Heebo', sans-serif; direction: rtl; }
         .leaflet-popup-tip { background: var(--md-surface) !important; box-shadow: none !important; }
-        .leaflet-popup-close-button { font-size: 0 !important; top: 8px !important; right: 8px !important; color: var(--md-text) !important; background: none !important; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: background-color 0.2s; z-index: 10; }
+        .leaflet-popup-close-button { top: 8px !important; right: 8px !important; color: var(--md-text) !important; background: none !important; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: background-color 0.2s; z-index: 10; }
         .leaflet-popup-close-button:hover { background-color: rgba(0,0,0,0.05) !important; }
         .leaflet-popup-close-button::before { content: 'close'; font-family: 'Material Symbols Outlined'; font-size: 20px; }
         .popup-box { padding: 1rem; text-align: center; }
@@ -73,13 +76,11 @@
         .popup-btn.whatsapp { background: linear-gradient(135deg, var(--md-success), #059669); }
         .popup-btn.edit { background: linear-gradient(135deg, var(--md-warning), #d97706); }
         .popup-btn.delete { background: linear-gradient(135deg, var(--md-error), #dc2626); }
-        .popup-btn.carpool { background: linear-gradient(135deg, #374151, #1f2937); }
         .popup-btn:hover { transform: scale(1.1); box-shadow: var(--md-shadow-lg); }
         .toast-container { position: fixed; top: 1rem; right: 1rem; z-index: 3000; display: flex; flex-direction: column; gap: 0.5rem; }
         .toast { background: var(--md-surface); padding: 1rem 1.5rem; border-radius: 12px; box-shadow: var(--md-shadow-lg); border-left: 4px solid var(--md-success); animation: slideIn 0.3s ease; min-width: 250px; }
         .toast.error { border-left-color: var(--md-error); }
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
     </style>
 </head>
 <body>
@@ -101,8 +102,9 @@
         </div>
         <div class="map-container">
             <div id="map"></div>
+            <div class="map-loader"><div class="spinner"></div></div>
             <div class="participant-count"><span id="participant-count">טוען...</span></div>
-            <button id="add-user-btn" class="fab add-fab" style="display: none;" title="הוסף משתמש"><span class="material-symbols-outlined">add</span></button>
+            <button id="add-user-btn" class="fab add-fab" style="display: none;" title="הוסף משתתף"><span class="material-symbols-outlined">add</span></button>
             <button id="reset-view-fab" class="fab reset-view-fab" title="מרכז מפה"><span class="material-symbols-outlined">explore</span></button>
         </div>
     </div>
@@ -131,11 +133,13 @@
         </div>
     </div>
     <div id="toast-container"></div>
+
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-auth-compat.js"></script>
+
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyD9Otp32sofmjDfI3aP31XskTxRuCF9_Cg",
@@ -149,83 +153,177 @@
         const db = firebase.firestore();
         const auth = firebase.auth();
     </script>
+    
     <script>
         let participants = [];
         let admin = false;
-        let editIdx = null;
-        const ToastManager = { show: (message, type = 'success') => { const container = document.getElementById('toast-container'); const toast = document.createElement('div'); toast.className = `toast ${type}`; toast.textContent = message; container.appendChild(toast); setTimeout(() => { toast.remove(); }, 3000); } };
+        let editId = null;
+
+        const ToastManager = {
+            show: (message, type = 'success') => {
+                const container = document.getElementById('toast-container');
+                if (!container) return;
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+                toast.textContent = message;
+                container.appendChild(toast);
+                setTimeout(() => { toast.remove(); }, 3000);
+            }
+        };
+
         const map = L.map('map').setView([31.5, 34.75], 8);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
         let markers = L.markerClusterGroup();
         const modernMarkerIcon = L.divIcon({ className: 'modern-marker', html: `<div style="width:36px;height:36px;background:linear-gradient(135deg, #6366f1, #8b5cf6);border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 6px 16px rgba(99,102,241,0.5);display:flex;align-items:center;justify-content:center;position:relative;"><div style="width:16px;height:16px;background:white;border-radius:50%;transform:rotate(45deg);"></div></div>`, iconSize: [36, 36], iconAnchor: [18, 36], popupAnchor: [0, -36] });
         
-        function distance(lat1, lon1, lat2, lon2) {
-            const R = 6371;
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2) * Math.sin(dLon/2);
-            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        function setLoading(isLoading) {
+            document.querySelector('.map-loader').classList.toggle('hidden', !isLoading);
         }
 
         async function loadDataFromFirestore() {
+            setLoading(true);
             try {
-                console.log("🔥 טוען נתונים מ-Firestore...");
                 const snapshot = await db.collection("participants").get();
                 const fetchedParticipants = [];
                 snapshot.forEach(doc => {
                     const data = doc.data();
                     const firstName = data['שם פרטי'] || '';
                     const lastName = data['שם משפחה'] || '';
-                    const phoneStr = String(data['מספר טלפון'] || '');
-                    const whatsappStr = String(data['מספר ווטצאפ'] || '');
-                    fetchedParticipants.push({ id: doc.id, firstName, lastName, name: `${firstName} ${lastName}`.trim(), city: data['עיר'] || 'לא צוין', phone: phoneStr, whatsapp: whatsappStr, lat: data['Lat'], lon: data['Lon'] });
+                    fetchedParticipants.push({
+                        id: doc.id, firstName, lastName,
+                        name: `${firstName} ${lastName}`.trim(),
+                        city: data['עיר'] || 'לא צוין',
+                        phone: data['מספר טלפון'] || '',
+                        whatsapp: data['מספר ווטצאפ'] || '',
+                        lat: data['Lat'], lon: data['Lon']
+                    });
                 });
                 participants = fetchedParticipants;
                 renderMarkers();
                 document.getElementById('participant-count').textContent = `${participants.length} משתתפים`;
-                console.log(`✅ נטענו ${participants.length} משתתפים.`);
-            } catch (error) { console.error("❌ שגיאה בטעינת נתונים:", error); ToastManager.show("שגיאה בטעינת הנתונים", "error"); }
+            } catch (error) {
+                ToastManager.show("שגיאה בטעינת הנתונים", "error");
+            } finally {
+                setLoading(false);
+            }
         }
 
         function renderMarkers(list = participants) {
             markers.clearLayers();
             list.forEach(p => {
                 if (!p.lat || !p.lon) return;
-                let nearbyParticipant = null;
-                for (const other of list) {
-                    if (other.id === p.id || !other.lat || !other.lon) continue;
-                    if (distance(p.lat, p.lon, other.lat, other.lon) <= 15) {
-                        nearbyParticipant = other;
-                        break;
-                    }
-                }
-                const whatsappNum = String(p.whatsapp || p.phone || '');
-                const message = encodeURIComponent(`היי ${nearbyParticipant ? nearbyParticipant.name : ''}, ראיתי שאנחנו קרובים במפה של המשלחת. רוצה לתאם נסיעה משותפת?`);
-                const carpoolButtonHTML = nearbyParticipant ? `<button class="popup-btn carpool" onclick="suggestCarpool('${nearbyParticipant.whatsapp || nearbyParticipant.phone}')"><span class="material-symbols-outlined">directions_car</span>הצע נסיעה משותפת</button>` : '';
-                const popupContent = `<div class="popup-box"><div class="popup-name"><span class="material-symbols-outlined">person</span>${p.name}</div><div class="popup-city"><span class="material-symbols-outlined">location_on</span>${p.city}</div><div class="popup-phone">📞 ${p.phone}</div><div class="popup-btns"><a href="tel:${p.phone}" class="popup-btn phone" target="_blank"><span class="material-symbols-outlined">call</span>צור קשר</a>${whatsappNum ? `<a href="https://wa.me/972${whatsappNum.replace(/^0/,'')}" class="popup-btn whatsapp" target="_blank"><span class="material-symbols-outlined">chat</span>וואטסאפ</a>` : ''}${carpoolButtonHTML}${admin ? `<button class="popup-btn edit" onclick="editUser('${p.id}')"><span class="material-symbols-outlined">edit</span>ערוך</button><button class="popup-btn delete" onclick="deleteUser('${p.id}')"><span class="material-symbols-outlined">delete</span>מחק</button>` : ''}</div></div>`;
+                const whatsappNum = p.whatsapp || p.phone;
+                const message = encodeURIComponent(`היי ${p.name}, רוצה לתאם נסיעה משותפת?`);
+                const popupContent = `<div class="popup-box"><div class="popup-name"><span class="material-symbols-outlined">person</span>${p.name}</div><div class="popup-city"><span class="material-symbols-outlined">location_on</span>${p.city}</div><div class="popup-phone">📞 ${p.phone}</div><div class="popup-btns"><a href="tel:${p.phone}" class="popup-btn phone" target="_blank"><span class="material-symbols-outlined">call</span>צור קשר</a>${whatsappNum ? `<a href="https://wa.me/972${whatsappNum.replace(/^0/,'')}?text=${message}" class="popup-btn whatsapp" target="_blank"><span class="material-symbols-outlined">chat</span>וואטסאפ</a>` : ''}${admin ? `<button class="popup-btn edit" onclick="editUser('${p.id}')"><span class="material-symbols-outlined">edit</span>ערוך</button><button class="popup-btn delete" onclick="deleteUser('${p.id}')"><span class="material-symbols-outlined">delete</span>מחק</button>` : ''}</div></div>`;
                 L.marker([p.lat, p.lon], { icon: modernMarkerIcon }).bindPopup(popupContent).addTo(markers);
             });
             map.addLayer(markers);
         }
 
-        window.suggestCarpool = (phone) => {
-            const message = encodeURIComponent(`היי, ראיתי שאנחנו קרובים במפה של המשלחת. רוצה לתאם נסיעה משותפת?`);
-            window.open(`https://wa.me/972${String(phone).replace(/^0/,'')}?text=${message}`, '_blank');
+        window.editUser = (id) => {
+            if (!admin) return;
+            const user = participants.find(p => p.id === id);
+            if (!user) return;
+            editId = id;
+            document.getElementById('user-form-title').innerText = '✏️ עריכת משתתף';
+            document.getElementById('user-first-name').value = user.firstName;
+            document.getElementById('user-last-name').value = user.lastName;
+            document.getElementById('user-city').value = user.city;
+            document.getElementById('user-phone').value = user.phone;
+            document.getElementById('user-whatsapp').value = user.whatsapp;
+            document.getElementById('user-form-modal').hidden = false;
         };
 
-        window.editUser = (id) => { if(!admin) return; const user = participants.find(p => p.id === id); if (!user) return; editIdx = id; document.getElementById('user-form-title').innerText = '✏️ עריכת משתתף'; document.getElementById('user-first-name').value = user.firstName; document.getElementById('user-last-name').value = user.lastName; document.getElementById('user-city').value = user.city; document.getElementById('user-phone').value = user.phone; document.getElementById('user-whatsapp').value = user.whatsapp; document.getElementById('user-form-modal').hidden = false; };
-        window.deleteUser = async (id) => { if(!admin) return; const user = participants.find(p => p.id === id); if (confirm(`האם למחוק את ${user.name}?`)) { try { await db.collection("participants").doc(id).delete(); ToastManager.show(`${user.name} נמחק.`); loadDataFromFirestore(); } catch (e) { ToastManager.show("שגיאה במחיקה", "error"); } } };
-        async function geocodeCity(city) { const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city + ', ישראל')}`; const resp = await fetch(url); const data = await resp.json(); if (data && data.length > 0) return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) }; throw new Error('City not found'); }
-        
+        window.deleteUser = async (id) => {
+            if (!admin) return;
+            const user = participants.find(p => p.id === id);
+            if (confirm(`האם למחוק את ${user.name}?`)) {
+                try {
+                    await db.collection("participants").doc(id).delete();
+                    ToastManager.show(`${user.name} נמחק.`);
+                    loadDataFromFirestore();
+                } catch (e) { ToastManager.show("שגיאה במחיקה", "error"); }
+            }
+        };
+
+        async function geocodeCity(city) {
+            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city + ', ישראל')}`;
+            const resp = await fetch(url);
+            const data = await resp.json();
+            if (data && data.length > 0) return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+            throw new Error('City not found');
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
+            const adminLoginBtn = document.getElementById('admin-login');
+            const userSaveBtn = document.getElementById('user-save');
+
             loadDataFromFirestore();
-            auth.onAuthStateChanged(user => { admin = !!user; document.getElementById('admin-login-btn').style.display = admin ? 'none' : 'flex'; document.getElementById('admin-logout-btn').style.display = admin ? 'flex' : 'none'; document.getElementById('add-user-btn').style.display = admin ? 'block' : 'none'; renderMarkers(); });
-            document.getElementById('admin-login').addEventListener('click', async () => { const password = document.getElementById('admin-password').value; const email = "maya@delegation.com"; try { await auth.signInWithEmailAndPassword(email, password); document.getElementById('admin-login-modal').hidden = true; ToastManager.show('התחברת בהצלחה!'); } catch (e) { ToastManager.show('סיסמה שגויה!', 'error'); } document.getElementById('admin-password').value = ''; });
-            document.getElementById('user-save').addEventListener('click', async () => { if(!admin) return; const firstName = document.getElementById('user-first-name').value.trim(); const lastName = document.getElementById('user-last-name').value.trim(); const city = document.getElementById('user-city').value.trim(); const phone = document.getElementById('user-phone').value.trim(); const whatsapp = document.getElementById('user-whatsapp').value.trim(); if (!firstName || !city || !phone) return ToastManager.show('חובה למלא שם, עיר וטלפון.', 'error'); try { const { lat, lon } = await geocodeCity(city); const dataToSave = { 'שם פרטי': firstName, 'שם משפחה': lastName, 'עיר': city, 'מספר טלפון': phone, 'מספר ווטצאפ': whatsapp, 'Lat': lat, 'Lon': lon }; if (editIdx) { await db.collection("participants").doc(editIdx).update(dataToSave); ToastManager.show('עודכן בהצלחה!'); } else { await db.collection("participants").add(dataToSave); ToastManager.show('נוסף בהצלחה!'); } document.getElementById('user-form-modal').hidden = true; editIdx = null; loadDataFromFirestore(); } catch (e) { ToastManager.show('לא נמצא מיקום לעיר.', 'error'); } });
+
+            auth.onAuthStateChanged(user => {
+                admin = !!user;
+                document.getElementById('admin-login-btn').style.display = admin ? 'none' : 'flex';
+                document.getElementById('admin-logout-btn').style.display = admin ? 'flex' : 'none';
+                document.getElementById('add-user-btn').style.display = admin ? 'block' : 'none';
+                renderMarkers();
+            });
+
+            adminLoginBtn.addEventListener('click', async () => {
+                adminLoginBtn.disabled = true;
+                const password = document.getElementById('admin-password').value;
+                const email = "maya@delegation.com";
+                try {
+                    await auth.signInWithEmailAndPassword(email, password);
+                    document.getElementById('admin-login-modal').hidden = true;
+                    ToastManager.show('התחברת בהצלחה!');
+                } catch (e) { ToastManager.show('סיסמה שגויה!', 'error'); }
+                finally {
+                    document.getElementById('admin-password').value = '';
+                    adminLoginBtn.disabled = false;
+                }
+            });
+
+            userSaveBtn.addEventListener('click', async () => {
+                const firstName = document.getElementById('user-first-name').value.trim();
+                const lastName = document.getElementById('user-last-name').value.trim();
+                const city = document.getElementById('user-city').value.trim();
+                const phone = document.getElementById('user-phone').value.trim();
+                const whatsapp = document.getElementById('user-whatsapp').value.trim();
+                if (!firstName || !city || !phone) return ToastManager.show('חובה למלא שם, עיר וטלפון.', 'error');
+                
+                userSaveBtn.disabled = true;
+                userSaveBtn.innerHTML = '<span class="material-symbols-outlined">hourglass_top</span> מעבד...';
+                
+                try {
+                    const { lat, lon } = await geocodeCity(city);
+                    const dataToSave = { 'שם פרטי': firstName, 'שם משפחה': lastName, 'עיר': city, 'מספר טלפון': phone, 'מספר ווטצאפ': whatsapp, 'Lat': lat, 'Lon': lon };
+                    if (editId) {
+                        await db.collection("participants").doc(editId).update(dataToSave);
+                        ToastManager.show('עודכן בהצלחה!');
+                    } else {
+                        await db.collection("participants").add(dataToSave);
+                        ToastManager.show('נוסף בהצלחה!');
+                    }
+                    document.getElementById('user-form-modal').hidden = true;
+                    editId = null;
+                    await loadDataFromFirestore();
+                } catch (e) { ToastManager.show('לא נמצא מיקום לעיר.', 'error'); }
+                finally {
+                    userSaveBtn.disabled = false;
+                    userSaveBtn.innerHTML = '<span class="material-symbols-outlined">save</span> שמירה';
+                }
+            });
+            
             document.getElementById('admin-login-btn').onclick = () => { document.getElementById('admin-login-modal').hidden = false; };
             document.getElementById('admin-cancel').onclick = () => { document.getElementById('admin-login-modal').hidden = true; };
             document.getElementById('admin-logout-btn').onclick = () => auth.signOut();
-            document.getElementById('add-user-btn').onclick = () => { if(!admin) return; editIdx = null; document.getElementById('user-form-modal').querySelectorAll('input').forEach(i => i.value = ''); document.getElementById('user-form-modal').hidden = false; };
+            document.getElementById('add-user-btn').onclick = () => {
+                if (!admin) return;
+                editId = null;
+                document.getElementById('user-form-title').innerText = '➕ הוסף משתתף';
+                document.getElementById('user-form-modal').querySelectorAll('input').forEach(i => i.value = '');
+                document.getElementById('user-form-modal').hidden = false;
+            };
             document.getElementById('user-cancel').onclick = () => { document.getElementById('user-form-modal').hidden = true; };
             document.getElementById('search-input').oninput = function() { const val = this.value.trim().toLowerCase(); renderMarkers(val ? participants.filter(p => p.name.toLowerCase().includes(val)) : participants); };
             document.getElementById('reset-view-fab').onclick = () => map.setView([31.5, 34.75], 8);
