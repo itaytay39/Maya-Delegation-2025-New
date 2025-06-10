@@ -11,76 +11,54 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
     
     <style>
-        :root { --md-primary: #6366f1; --md-secondary: #8b5cf6; --md-success: #10b981; --md-error: #ef4444; --md-warning: #f59e0b; --md-surface: #ffffff; --md-background: #f8fafc; --md-text: #1e293b; --md-border: #e2e8f0; --md-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); --md-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); --md-radius: 24px; --md-transition: 0.2s cubic-bezier(0.4,0,0.2,1); }
+        :root { --md-primary: #6366f1; --md-secondary: #8b5cf6; --md-success: #10b981; --md-error: #ef4444; --md-warning: #f59e0b; --md-surface: #ffffff; --md-background: #f8fafc; --md-text: #1e293b; --md-border: #e2e8f0; --md-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); --md-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); --md-radius: 24px; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Heebo', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; direction: rtl; color: var(--md-text); }
         #app-container { max-width: 480px; margin: 0 auto; background: var(--md-background); min-height: 100vh; position: relative; overflow-x: hidden; }
         .header { background: linear-gradient(135deg, var(--md-primary), var(--md-secondary)); padding: 2rem 1.5rem; text-align: center; color: white; position: relative; }
-        .logo-container { position: relative; display: flex; justify-content: center; align-items: center; margin-bottom: 1rem; }
-        .logo-maya { width: 140px; height: 140px; border-radius: 50%; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.3); transition: transform 0.3s ease; background: white; padding: 5px; display: flex; align-items: center; justify-content: center; }
-        .logo-maya:hover { transform: scale(1.05); }
+        .logo-container { display: flex; justify-content: center; align-items: center; margin-bottom: 1rem; }
+        .logo-maya { width: 140px; height: 140px; border-radius: 50%; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.3); background: white; padding: 5px; display: flex; align-items: center; justify-content: center; }
         .logo-maya img { width: 100%; height: 100%; object-fit: contain; }
-        .admin-fab { position: absolute; top: 15px; width: 48px; height: 48px; border-radius: 50%; border: none; background: rgba(255,255,255,0.2); color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px); transition: all 0.3s ease; box-shadow: var(--md-shadow); z-index: 100; }
-        .admin-fab:hover { background: rgba(255,255,255,0.3); transform: scale(1.1); }
+        .admin-fab { position: absolute; top: 15px; width: 48px; height: 48px; border-radius: 50%; border: none; background: rgba(255,255,255,0.2); color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px); transition: all 0.3s ease; z-index: 100; }
         #admin-login-btn { left: 15px; }
         .logout-btn { right: 15px; background: rgba(255,0,0,0.3) !important; }
-        .logout-btn:hover { background: rgba(255,0,0,0.5) !important; }
         .title { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; }
         .subtitle { font-size: 1rem; opacity: 0.9; font-weight: 300; }
         .search-container { padding: 1rem; background: var(--md-surface); box-shadow: var(--md-shadow); }
-        .search-box { position: relative; display: flex; align-items: center; background: var(--md-background); border-radius: var(--md-radius); padding: 0.75rem 1rem; border: 2px solid var(--md-border); transition: all 0.3s ease; }
-        .search-box:focus-within { border-color: var(--md-primary); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
+        .search-box { display: flex; align-items: center; background: var(--md-background); border-radius: var(--md-radius); padding: 0.75rem 1rem; border: 2px solid var(--md-border); }
         .search-icon { color: #64748b; margin-left: 0.5rem; }
         .search-input { flex: 1; border: none; outline: none; font-size: 1rem; color: var(--md-text); background: transparent; }
         .map-container { height: 60vh; margin: 1rem; border-radius: var(--md-radius); overflow: hidden; box-shadow: var(--md-shadow-lg); position: relative; }
         #map { height: 100%; width: 100%; }
-        .map-loader { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); backdrop-filter: blur(5px); z-index: 1001; display: flex; align-items: center; justify-content: center; transition: opacity 0.3s ease; }
-        .map-loader.hidden { opacity: 0; pointer-events: none; }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-        .spinner { width: 50px; height: 50px; border: 5px solid var(--md-border); border-top-color: var(--md-primary); border-radius: 50%; animation: spin 1s linear infinite; }
-        .participant-count { position: absolute; top: 1rem; right: 1rem; background: rgba(255,255,255,0.95); padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.875rem; font-weight: 500; color: var(--md-text); backdrop-filter: blur(10px); box-shadow: var(--md-shadow); }
-        .fab { position: absolute; width: 60px; height: 60px; border-radius: 50%; border: none; color: white; box-shadow: var(--md-shadow-lg); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; transition: all 0.3s ease; z-index: 1000; }
+        .participant-count { position: absolute; top: 1rem; right: 1rem; background: rgba(255,255,255,0.95); padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.875rem; font-weight: 500; color: var(--md-text); backdrop-filter: blur(10px); }
+        .fab { position: absolute; width: 60px; height: 60px; border-radius: 50%; border: none; color: white; box-shadow: var(--md-shadow-lg); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; z-index: 1000; }
         .add-fab { bottom: 1rem; left: 1rem; background: linear-gradient(135deg, var(--md-success), #059669); }
         .reset-view-fab { bottom: 1rem; right: 1rem; background: linear-gradient(135deg, #42a5f5, #1976d2); }
-        .fab:hover { transform: scale(1.1); box-shadow: 0 12px 35px rgba(99, 102, 241, 0.4); }
-        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(10px); z-index: 2000; align-items: center; justify-content: center; padding: 1rem; }
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(10px); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 1rem; }
         .modal[hidden] { display: none !important; }
-        .modal:not([hidden]) { display: flex; }
-        .modal-content { background: var(--md-surface); border-radius: var(--md-radius); padding: 2rem; width: 100%; max-width: 400px; animation: modalSlideIn 0.3s ease; box-shadow: 0 25px 50px rgba(0,0,0,0.25); }
-        @keyframes modalSlideIn { from { opacity: 0; transform: translateY(50px) scale(0.9); } to { opacity: 1; transform: translateY(0) scale(1); } }
-        .modal h3 { text-align: center; margin-bottom: 1.5rem; color: var(--md-text); font-weight: 600; font-size: 1.5rem; }
+        .modal-content { background: var(--md-surface); border-radius: var(--md-radius); padding: 2rem; width: 100%; max-width: 400px; }
+        .modal h3 { text-align: center; margin-bottom: 1.5rem; font-weight: 600; font-size: 1.5rem; }
         .form-group { margin-bottom: 1rem; }
-        .form-input { width: 100%; padding: 0.75rem 1rem; border: 2px solid var(--md-border); border-radius: 12px; font-size: 1rem; transition: all 0.3s ease; background: var(--md-background); font-family: 'Heebo', sans-serif; }
-        .form-input:focus { outline: none; border-color: var(--md-primary); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
+        .form-input { width: 100%; padding: 0.75rem 1rem; border: 2px solid var(--md-border); border-radius: 12px; font-size: 1rem; background: var(--md-background); }
         .button-group { display: flex; gap: 0.75rem; margin-top: 1.5rem; }
-        .btn { flex: 1; padding: 0.75rem 1rem; border: none; border-radius: 12px; font-size: 1rem; font-weight: 500; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-family: 'Heebo', sans-serif; }
-        .btn:disabled { background: #9ca3af; cursor: not-allowed; transform: none; box-shadow: none; }
+        .btn { flex: 1; padding: 0.75rem 1rem; border: none; border-radius: 12px; font-size: 1rem; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
         .btn-primary { background: linear-gradient(135deg, var(--md-primary), var(--md-secondary)); color: white; }
-        .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4); }
         .btn-secondary { background: var(--md-border); color: var(--md-text); }
-        .btn-secondary:hover:not(:disabled) { background: #cbd5e1; }
-        .leaflet-popup-content-wrapper { padding: 0 !important; border-radius: 16px !important; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2) !important; background: var(--md-surface) !important; margin-top: 10px !important; }
-        .leaflet-popup-content { margin: 0 !important; min-width: 260px; max-width: 300px; font-family: 'Heebo', sans-serif; direction: rtl; }
-        .leaflet-popup-tip { background: var(--md-surface) !important; box-shadow: none !important; }
-        .leaflet-popup-close-button { top: 8px !important; right: 8px !important; color: var(--md-text) !important; background: none !important; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: background-color 0.2s; z-index: 10; }
-        .leaflet-popup-close-button:hover { background-color: rgba(0,0,0,0.05) !important; }
-        .leaflet-popup-close-button::before { content: 'close'; font-family: 'Material Symbols Outlined'; font-size: 20px; }
+        .leaflet-popup-content-wrapper { padding: 0 !important; border-radius: 16px !important; box-shadow: 0 8px 20px rgba(0,0,0,0.2) !important; background: var(--md-surface) !important; }
+        .leaflet-popup-content { margin: 0 !important; font-family: 'Heebo', sans-serif; }
         .popup-box { padding: 1rem; text-align: center; }
-        .popup-name { font-size: 1.3rem; font-weight: 700; color: var(--md-primary); margin-bottom: 0.4rem; display: flex; align-items: center; justify-content: center; gap: 0.4rem; }
-        .popup-city { font-size: 1rem; font-weight: 500; margin-bottom: 0.4rem; display: flex; align-items: center; justify-content: center; gap: 0.4rem; }
-        .popup-phone { font-size: 0.9rem; color: #64748b; margin-bottom: 0.8rem; direction: ltr; font-weight: 500; }
-        .popup-btns { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.5rem; margin-top: 0.8rem; }
-        .popup-btn { padding: 0.6rem 0.8rem; border: none; border-radius: 10px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.4rem; color: white !important; min-height: 40px; box-shadow: var(--md-shadow); }
-        .popup-btn .material-symbols-outlined { font-size: 1.1rem; }
-        .popup-btn.phone { background: linear-gradient(135deg, var(--md-primary), #4f46e5); }
-        .popup-btn.whatsapp { background: linear-gradient(135deg, var(--md-success), #059669); }
-        .popup-btn.edit { background: linear-gradient(135deg, var(--md-warning), #d97706); }
-        .popup-btn.delete { background: linear-gradient(135deg, var(--md-error), #dc2626); }
-        .popup-btn:hover { transform: scale(1.1); box-shadow: var(--md-shadow-lg); }
-        .toast-container { position: fixed; top: 1rem; right: 1rem; z-index: 3000; display: flex; flex-direction: column; gap: 0.5rem; }
-        .toast { background: var(--md-surface); padding: 1rem 1.5rem; border-radius: 12px; box-shadow: var(--md-shadow-lg); border-left: 4px solid var(--md-success); animation: slideIn 0.3s ease; min-width: 250px; }
+        .popup-name { font-size: 1.3rem; font-weight: 700; color: var(--md-primary); margin-bottom: 0.4rem; }
+        .popup-city { font-size: 1rem; font-weight: 500; margin-bottom: 0.4rem; }
+        .popup-phone { font-size: 0.9rem; color: #64748b; margin-bottom: 0.8rem; direction: ltr; }
+        .popup-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.8rem; }
+        .popup-btn { padding: 0.6rem; border: none; border-radius: 10px; font-size: 0.9rem; font-weight: 600; cursor: pointer; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.4rem; color: white !important; }
+        .popup-btn.phone { background: var(--md-primary); }
+        .popup-btn.whatsapp { background: var(--md-success); }
+        .popup-btn.edit { background: var(--md-warning); }
+        .popup-btn.delete { background: var(--md-error); }
+        .toast-container { position: fixed; top: 1rem; right: 1rem; z-index: 3000; }
+        .toast { background: var(--md-surface); padding: 1rem 1.5rem; border-radius: 12px; box-shadow: var(--md-shadow-lg); border-left: 4px solid var(--md-success); margin-bottom: 0.5rem; }
         .toast.error { border-left-color: var(--md-error); }
-        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
     </style>
 </head>
 <body>
@@ -89,7 +67,7 @@
             <button id="admin-login-btn" class="admin-fab" title="כניסת אדמין"><span class="material-symbols-outlined">admin_panel_settings</span></button>
             <button id="admin-logout-btn" class="admin-fab logout-btn" title="התנתק" style="display: none;"><span class="material-symbols-outlined">logout</span></button>
             <div class="logo-container">
-                <div class="logo-maya"><img src="logo.png" alt="לוגו" onerror="this.style.display='none'; this.parentElement.innerHTML += 'Logo?';"></div>
+                <div class="logo-maya"><img src="logo.png" alt="לוגו" onerror="this.style.display='none';"></div>
             </div>
             <div class="title">מאיה - משלחת לאוגנדה</div>
             <div class="subtitle">מחברים בין חברים</div>
@@ -102,9 +80,8 @@
         </div>
         <div class="map-container">
             <div id="map"></div>
-            <div class="map-loader"><div class="spinner"></div></div>
             <div class="participant-count"><span id="participant-count">טוען...</span></div>
-            <button id="add-user-btn" class="fab add-fab" style="display: none;" title="הוסף משתתף"><span class="material-symbols-outlined">add</span></button>
+            <button id="add-user-btn" class="fab add-fab" style="display: none;" title="הוסף משתמש"><span class="material-symbols-outlined">add</span></button>
             <button id="reset-view-fab" class="fab reset-view-fab" title="מרכז מפה"><span class="material-symbols-outlined">explore</span></button>
         </div>
     </div>
@@ -141,6 +118,9 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-auth-compat.js"></script>
 
     <script>
+        // =======================================================
+        //          חלק 1: הגדרת החיבור ל-Firebase
+        // =======================================================
         const firebaseConfig = {
             apiKey: "AIzaSyD9Otp32sofmjDfI3aP31XskTxRuCF9_Cg",
             authDomain: "maya-delegation-to-uganda.firebaseapp.com",
@@ -155,6 +135,9 @@
     </script>
     
     <script>
+        // =======================================================
+        //          חלק 2: כל הלוגיקה של האפליקציה
+        // =======================================================
         let participants = [];
         let admin = false;
         let editId = null;
@@ -162,27 +145,22 @@
         const ToastManager = {
             show: (message, type = 'success') => {
                 const container = document.getElementById('toast-container');
-                if (!container) return;
                 const toast = document.createElement('div');
                 toast.className = `toast ${type}`;
                 toast.textContent = message;
                 container.appendChild(toast);
-                setTimeout(() => { toast.remove(); }, 3000);
+                setTimeout(() => { toast.remove(); }, 3500);
             }
         };
 
         const map = L.map('map').setView([31.5, 34.75], 8);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
         let markers = L.markerClusterGroup();
         const modernMarkerIcon = L.divIcon({ className: 'modern-marker', html: `<div style="width:36px;height:36px;background:linear-gradient(135deg, #6366f1, #8b5cf6);border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 6px 16px rgba(99,102,241,0.5);display:flex;align-items:center;justify-content:center;position:relative;"><div style="width:16px;height:16px;background:white;border-radius:50%;transform:rotate(45deg);"></div></div>`, iconSize: [36, 36], iconAnchor: [18, 36], popupAnchor: [0, -36] });
-        
-        function setLoading(isLoading) {
-            document.querySelector('.map-loader').classList.toggle('hidden', !isLoading);
-        }
 
         async function loadDataFromFirestore() {
-            setLoading(true);
             try {
+                console.log("🔥 טוען נתונים עדכניים מ-Firestore...");
                 const snapshot = await db.collection("participants").get();
                 const fetchedParticipants = [];
                 snapshot.forEach(doc => {
@@ -190,38 +168,40 @@
                     const firstName = data['שם פרטי'] || '';
                     const lastName = data['שם משפחה'] || '';
                     fetchedParticipants.push({
-                        id: doc.id, firstName, lastName,
+                        id: doc.id,
+                        firstName, lastName,
                         name: `${firstName} ${lastName}`.trim(),
                         city: data['עיר'] || 'לא צוין',
                         phone: data['מספר טלפון'] || '',
                         whatsapp: data['מספר ווטצאפ'] || '',
-                        lat: data['Lat'], lon: data['Lon']
+                        lat: data['Lat'],
+                        lon: data['Lon']
                     });
                 });
                 participants = fetchedParticipants;
+                localStorage.setItem('maya-participants', JSON.stringify(participants));
                 renderMarkers();
-                document.getElementById('participant-count').textContent = `${participants.length} משתתפים`;
+                console.log(`✅ נטענו ${participants.length} משתתפים.`);
             } catch (error) {
+                console.error("❌ שגיאה בטעינת נתונים:", error);
                 ToastManager.show("שגיאה בטעינת הנתונים", "error");
-            } finally {
-                setLoading(false);
             }
         }
 
         function renderMarkers(list = participants) {
             markers.clearLayers();
+            document.getElementById('participant-count').textContent = `${list.length} משתתפים`;
             list.forEach(p => {
                 if (!p.lat || !p.lon) return;
                 const whatsappNum = p.whatsapp || p.phone;
                 const message = encodeURIComponent(`היי ${p.name}, רוצה לתאם נסיעה משותפת?`);
-                const popupContent = `<div class="popup-box"><div class="popup-name"><span class="material-symbols-outlined">person</span>${p.name}</div><div class="popup-city"><span class="material-symbols-outlined">location_on</span>${p.city}</div><div class="popup-phone">📞 ${p.phone}</div><div class="popup-btns"><a href="tel:${p.phone}" class="popup-btn phone" target="_blank"><span class="material-symbols-outlined">call</span>צור קשר</a>${whatsappNum ? `<a href="https://wa.me/972${whatsappNum.replace(/^0/,'')}?text=${message}" class="popup-btn whatsapp" target="_blank"><span class="material-symbols-outlined">chat</span>וואטסאפ</a>` : ''}${admin ? `<button class="popup-btn edit" onclick="editUser('${p.id}')"><span class="material-symbols-outlined">edit</span>ערוך</button><button class="popup-btn delete" onclick="deleteUser('${p.id}')"><span class="material-symbols-outlined">delete</span>מחק</button>` : ''}</div></div>`;
+                const popupContent = `<div class="popup-box"><div class="popup-name">${p.name}</div><div class="popup-city">${p.city}</div><div class="popup-phone">📞 ${p.phone}</div><div class="popup-btns"><a href="tel:${p.phone}" class="popup-btn phone" target="_blank">חייג</a><a href="https://wa.me/972${whatsappNum.replace(/^0/,'')}?text=${message}" class="popup-btn whatsapp" target="_blank">שלח הודעה</a>${admin ? `<button class="popup-btn edit" onclick="editUser('${p.id}')">ערוך</button><button class="popup-btn delete" onclick="deleteUser('${p.id}')">מחק</button>` : ''}</div></div>`;
                 L.marker([p.lat, p.lon], { icon: modernMarkerIcon }).bindPopup(popupContent).addTo(markers);
             });
             map.addLayer(markers);
         }
 
         window.editUser = (id) => {
-            if (!admin) return;
             const user = participants.find(p => p.id === id);
             if (!user) return;
             editId = id;
@@ -235,7 +215,6 @@
         };
 
         window.deleteUser = async (id) => {
-            if (!admin) return;
             const user = participants.find(p => p.id === id);
             if (confirm(`האם למחוק את ${user.name}?`)) {
                 try {
@@ -255,9 +234,13 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            const adminLoginBtn = document.getElementById('admin-login');
-            const userSaveBtn = document.getElementById('user-save');
-
+            // לוגיקת טעינה מתוקנת
+            const cachedData = localStorage.getItem('maya-participants');
+            if (cachedData) {
+                participants = JSON.parse(cachedData);
+                console.log(`📂 מציג ${participants.length} משתתפים מהזיכרון המקומי.`);
+                renderMarkers();
+            }
             loadDataFromFirestore();
 
             auth.onAuthStateChanged(user => {
@@ -268,8 +251,7 @@
                 renderMarkers();
             });
 
-            adminLoginBtn.addEventListener('click', async () => {
-                adminLoginBtn.disabled = true;
+            document.getElementById('admin-login').addEventListener('click', async () => {
                 const password = document.getElementById('admin-password').value;
                 const email = "maya@delegation.com";
                 try {
@@ -277,22 +259,16 @@
                     document.getElementById('admin-login-modal').hidden = true;
                     ToastManager.show('התחברת בהצלחה!');
                 } catch (e) { ToastManager.show('סיסמה שגויה!', 'error'); }
-                finally {
-                    document.getElementById('admin-password').value = '';
-                    adminLoginBtn.disabled = false;
-                }
+                document.getElementById('admin-password').value = '';
             });
 
-            userSaveBtn.addEventListener('click', async () => {
+            document.getElementById('user-save').addEventListener('click', async () => {
                 const firstName = document.getElementById('user-first-name').value.trim();
                 const lastName = document.getElementById('user-last-name').value.trim();
                 const city = document.getElementById('user-city').value.trim();
                 const phone = document.getElementById('user-phone').value.trim();
                 const whatsapp = document.getElementById('user-whatsapp').value.trim();
                 if (!firstName || !city || !phone) return ToastManager.show('חובה למלא שם, עיר וטלפון.', 'error');
-                
-                userSaveBtn.disabled = true;
-                userSaveBtn.innerHTML = '<span class="material-symbols-outlined">hourglass_top</span> מעבד...';
                 
                 try {
                     const { lat, lon } = await geocodeCity(city);
@@ -306,28 +282,4 @@
                     }
                     document.getElementById('user-form-modal').hidden = true;
                     editId = null;
-                    await loadDataFromFirestore();
-                } catch (e) { ToastManager.show('לא נמצא מיקום לעיר.', 'error'); }
-                finally {
-                    userSaveBtn.disabled = false;
-                    userSaveBtn.innerHTML = '<span class="material-symbols-outlined">save</span> שמירה';
-                }
-            });
-            
-            document.getElementById('admin-login-btn').onclick = () => { document.getElementById('admin-login-modal').hidden = false; };
-            document.getElementById('admin-cancel').onclick = () => { document.getElementById('admin-login-modal').hidden = true; };
-            document.getElementById('admin-logout-btn').onclick = () => auth.signOut();
-            document.getElementById('add-user-btn').onclick = () => {
-                if (!admin) return;
-                editId = null;
-                document.getElementById('user-form-title').innerText = '➕ הוסף משתתף';
-                document.getElementById('user-form-modal').querySelectorAll('input').forEach(i => i.value = '');
-                document.getElementById('user-form-modal').hidden = false;
-            };
-            document.getElementById('user-cancel').onclick = () => { document.getElementById('user-form-modal').hidden = true; };
-            document.getElementById('search-input').oninput = function() { const val = this.value.trim().toLowerCase(); renderMarkers(val ? participants.filter(p => p.name.toLowerCase().includes(val)) : participants); };
-            document.getElementById('reset-view-fab').onclick = () => map.setView([31.5, 34.75], 8);
-        });
-    </script>
-</body>
-</html>
+                    loadDataFromFirestore();
