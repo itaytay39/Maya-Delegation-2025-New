@@ -1,1 +1,179 @@
 
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>מפת משתתפים - מאיה משלחת לאוגנדה</title>
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+    <style>
+        :root { --md-primary: #6366f1; --md-secondary: #8b5cf6; --md-success: #10b981; --md-text: #1e293b; --md-border: #e2e8f0; --md-radius: 24px; }
+        body { font-family: 'Heebo', sans-serif; margin: 0; }
+        #app-container { max-width: 480px; margin: 0 auto; background: var(--md-background); min-height: 100vh; }
+        .header { background: linear-gradient(135deg, var(--md-primary), var(--md-secondary)); padding: 2rem 1.5rem; text-align: center; color: white; }
+        .logo-maya { width: 140px; height: 140px; border-radius: 50%; margin: 0 auto 1rem; background: white; padding: 5px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+        .logo-maya img { width: 100%; height: 100%; object-fit: contain; border-radius: 50%; }
+        .title { font-size: 1.5rem; font-weight: 700; }
+        .subtitle { font-size: 1rem; opacity: 0.9; }
+        .search-container { padding: 1rem; }
+        .search-box { display: flex; align-items: center; border-radius: var(--md-radius); padding: 0.75rem 1rem; border: 2px solid var(--md-border); }
+        .search-icon { margin-left: 0.5rem; }
+        .search-input { flex: 1; border: none; outline: none; background: transparent; }
+        .map-container { height: 60vh; margin: 1rem; border-radius: var(--md-radius); overflow: hidden; position: relative; }
+        #map { height: 100%; width: 100%; background-color: #e2e8f0; }
+        .participant-count { position: absolute; top: 1rem; right: 1rem; background: rgba(255,255,255,0.9); padding: 0.5rem 1rem; border-radius: 20px; z-index: 401; }
+        .reset-view-fab { position: absolute; bottom: 20px; right: 20px; width: 50px; height: 50px; border-radius: 50%; background: white; color: var(--md-primary); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .leaflet-popup-content-wrapper, .leaflet-popup-tip { 
+            background: rgba(255, 255, 255, 0.95); /* רקע לבן כמעט אטום */
+            backdrop-filter: blur(8px); /* אפקט "זכוכית חלבית" למראה מודרני */
+            border: 1px solid rgba(0,0,0,0.1);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+            border-radius: 12px;
+        }
+        .popup-box { padding: 1rem; text-align: center; }
+        .popup-name { font-weight: 700; font-size: 1.3rem; color: var(--md-primary); }
+        .popup-phone { direction: ltr; margin: 0.25rem 0; }
+        .popup-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 1rem; }
+        .popup-btn { padding: 0.6rem; border-radius: 10px; text-decoration: none; color: white !important; display: flex; align-items: center; justify-content: center; gap: 0.4rem; border: none; font-family: 'Heebo', sans-serif; }
+        .popup-btn.phone { background: var(--md-primary); }
+        .popup-btn.whatsapp { background: var(--md-success); }
+        .popup-btn.carpool { background: #374151; grid-column: 1 / -1; }
+    </style>
+</head>
+<body>
+    <div id="app-container">
+        <header class="header">
+            <div class="logo-maya"><img src="logo.png" alt="לוגו" onerror="this.style.display='none';"></div>
+            <div class="title">מאיה - משלחת לאוגנדה</div>
+            <div class="subtitle">מחברים בין חברים</div>
+        </header>
+        <div class="search-container">
+            <div class="search-box">
+                <span class="material-symbols-outlined search-icon">search</span>
+                <input type="text" class="search-input" placeholder="חיפוש משתתפים" id="search-input">
+            </div>
+        </div>
+        <div class="map-container">
+            <div id="map"></div>
+            <div class="participant-count"><span id="participant-count">טוען...</span></div>
+            <button id="reset-view-fab" class="reset-view-fab" title="מרכז מפה"><span class="material-symbols-outlined">explore</span></button>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+    
+    <script>
+        const SHEETDB_API_URL = 'https://sheetdb.io/api/v1/sbhyvkuopsbjk';
+
+        let allParticipants = [];
+        const map = L.map('map').setView([31.5, 34.75], 8);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        const markers = L.markerClusterGroup();
+        map.addLayer(markers);
+        
+        const modernMarkerIcon = L.divIcon({ className: 'modern-marker', html: `<div style="width:30px;height:30px;background:#6366f1;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 4px 10px rgba(0,0,0,0.3);"></div>`, iconSize: [30, 30], iconAnchor: [15, 30], popupAnchor: [0, -30] });
+
+        async function loadData() {
+            try {
+                const response = await fetch(SHEETDB_API_URL);
+                if (!response.ok) throw new Error('Network response was not ok');
+                const data = await response.json();
+                
+                allParticipants = data.map(p => ({
+                    ...p,
+                    name: `${p.firstName || ''} ${p.lastName || ''}`.trim()
+                }));
+                
+                renderMarkers(allParticipants);
+            } catch (error) {
+                console.error("Error fetching data:", error);
+                document.getElementById('participant-count').textContent = 'שגיאה בטעינה';
+            }
+        }
+
+        function renderMarkers(participantsToRender) {
+            markers.clearLayers();
+            document.getElementById('participant-count').textContent = `${participantsToRender.length} משתתפים`;
+            
+            function getDistance(lat1, lon1, lat2, lon2) {
+                if (typeof lat1 !== 'number' || typeof lon1 !== 'number' || typeof lat2 !== 'number' || typeof lon2 !== 'number') return Infinity;
+                const R = 6371;
+                const dLat = (lat2 - lat1) * Math.PI / 180;
+                const dLon = (lon2 - lon1) * Math.PI / 180;
+                const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            }
+
+            participantsToRender.forEach(p => {
+                const lat = parseFloat(p.lat);
+                const lon = parseFloat(p.lon);
+                
+                if (!isNaN(lat) && !isNaN(lon)) {
+                    const nearbyParticipant = allParticipants.find(other => 
+                        p.phone !== other.phone && 
+                        getDistance(lat, lon, parseFloat(other.lat), parseFloat(other.lon)) < 20
+                    );
+                    
+                    const whatsappNum = p.whatsapp || p.phone;
+                    
+                    let carpoolButton = '';
+                    if (nearbyParticipant && typeof whatsappNum === 'string' && whatsappNum.length > 0) {
+                        const carpoolMessage = encodeURIComponent(`היי, ראיתי שאנחנו גרים קרוב. רוצה לתאם נסיעה משותפת למשלחת של מאיה?`);
+                        carpoolButton = `<a href="https://wa.me/972${whatsappNum.replace(/^0/,'')}?text=${carpoolMessage}" class="popup-btn carpool" target="_blank">הצע נסיעה משותפת</a>`;
+                    }
+                    
+                    let whatsappButton = '';
+                    if (typeof whatsappNum === 'string' && whatsappNum.length > 0) {
+                        const message = encodeURIComponent(`היי ${p.name}, אני מהמשלחת של מאיה.`);
+                        whatsappButton = `<a href="https://wa.me/972${whatsappNum.replace(/^0/,'')}?text=${message}" class="popup-btn whatsapp" target="_blank">שלח וואטסאפ</a>`;
+                    }
+                    
+                    const telLink = `tel:0${p.phone}`;
+
+                    const popupContent = `
+                        <div class="popup-box">
+                            <div class="popup-name">${p.name}</div>
+                            <div>${p.city}</div>
+                            <div class="popup-phone">📞 0${p.phone}</div>
+                            <div class="popup-btns">
+                                <a href="${telLink}" class="popup-btn phone" target="_blank">חייג</a>
+                                ${whatsappButton}
+                                ${carpoolButton}
+                            </div>
+                        </div>`;
+                        
+                    L.marker([lat, lon], {icon: modernMarkerIcon}).bindPopup(popupContent).addTo(markers);
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (SHEETDB_API_URL === 'הדבק כאן את קישור ה-API שלך מ-SheetDB') {
+                alert('אנא הכנס את קישור ה-API מ-SheetDB בקוד!');
+                return;
+            }
+            loadData();
+            
+            const searchInput = document.getElementById('search-input');
+            searchInput.addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase();
+                const filtered = allParticipants.filter(p => 
+                    p.name.toLowerCase().includes(query) ||
+                    (p.city && p.city.toLowerCase().includes(query))
+                );
+                renderMarkers(filtered);
+            });
+
+            document.getElementById('reset-view-fab').onclick = () => {
+                map.setView([31.5, 34.75], 8);
+            };
+        });
+    </script>
+</body>
+</html>
