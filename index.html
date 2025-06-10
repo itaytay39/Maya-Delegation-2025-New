@@ -12,7 +12,9 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
     <style>
         :root { --md-primary: #6366f1; --md-secondary: #8b5cf6; --md-success: #10b981; --md-text: #1e293b; --md-border: #e2e8f0; --md-radius: 24px; }
-        body { font-family: 'Heebo', sans-serif; margin: 0; }
+        html { box-sizing: border-box; }
+        *, *:before, *:after { box-sizing: inherit; }
+        body { font-family: 'Heebo', sans-serif; margin: 0; background: #f8fafc; }
         #app-container { max-width: 480px; margin: 0 auto; background: var(--md-background); min-height: 100vh; }
         .header { background: linear-gradient(135deg, var(--md-primary), var(--md-secondary)); padding: 2rem 1.5rem; text-align: center; color: white; }
         .logo-maya { width: 120px; height: 120px; border-radius: 50%; margin: 0 auto 1rem; background: white; padding: 5px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
@@ -26,8 +28,7 @@
         .map-container { height: calc(100vh - 250px); margin: 0; border-radius: 0; position: relative; }
         #map { height: 100%; width: 100%; background-color: #e2e8f0; }
         .participant-count { position: absolute; top: 1rem; right: 1rem; background: rgba(255,255,255,0.9); padding: 0.5rem 1rem; border-radius: 20px; z-index: 401; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
-        .fab { position: absolute; width: 60px; height: 60px; border-radius: 50%; border: none; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 1000; }
-        .reset-view-fab { bottom: 1rem; right: 1rem; background: linear-gradient(135deg, #42a5f5, #1976d2); }
+        .reset-view-fab { position: absolute; bottom: 20px; right: 20px; width: 50px; height: 50px; border-radius: 50%; background: white; color: var(--md-primary); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
         .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--md-surface); box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-radius: 12px; }
         .popup-box { padding: 1rem; text-align: center; font-size: 1rem; }
         .popup-name { font-weight: 700; font-size: 1.25rem; color: var(--md-primary); margin-bottom: 0.25rem; }
@@ -56,8 +57,8 @@
         </div>
         <div class="map-container">
             <div id="map"></div>
-            <div class="participant-count"><span id="participant-count">טוען...</span></div>
-            <button id="reset-view-fab" class="fab reset-view-fab" title="מרכז מפה"><span class="material-symbols-outlined">explore</span></button>
+            <div class="participant-count" style="display: none;"><span id="participant-count"></span></div>
+            <button id="reset-view-fab" class="reset-view-fab" title="מרכז מפה"><span class="material-symbols-outlined">explore</span></button>
         </div>
     </div>
 
@@ -72,6 +73,7 @@
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
         const markers = L.markerClusterGroup();
         map.addLayer(markers);
+        const modernMarkerIcon = L.divIcon({ className: 'modern-marker', html: `<div style="width:30px;height:30px;background:#6366f1;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 4px 10px rgba(0,0,0,0.3);"></div>`, iconSize: [30, 30], iconAnchor: [15, 30], popupAnchor: [0, -30] });
 
         async function loadData() {
             try {
@@ -87,13 +89,18 @@
                 renderMarkers(allParticipants);
             } catch (error) {
                 console.error("Error fetching data:", error);
-                document.getElementById('participant-count').textContent = 'שגיאה בטעינה';
+                const countDiv = document.querySelector('.participant-count');
+                countDiv.textContent = 'שגיאה בטעינה';
+                countDiv.style.display = 'block';
             }
         }
 
         function renderMarkers(participantsToRender) {
             markers.clearLayers();
-            document.getElementById('participant-count').textContent = `${participantsToRender.length} משתתפים`;
+            
+            const countDiv = document.querySelector('.participant-count');
+            countDiv.style.display = 'block';
+            countDiv.querySelector('span').textContent = `${participantsToRender.length} משתתפים`;
             
             function getDistance(lat1, lon1, lat2, lon2) {
                 if (typeof lat1 !== 'number' || typeof lon1 !== 'number' || typeof lat2 !== 'number' || typeof lon2 !== 'number') return Infinity;
@@ -109,11 +116,7 @@
                 const lon = parseFloat(p.lon);
                 
                 if (!isNaN(lat) && !isNaN(lon)) {
-                    const nearbyParticipant = allParticipants.find(other => 
-                        p.phone !== other.phone && 
-                        getDistance(lat, lon, parseFloat(other.lat), parseFloat(other.lon)) < 20
-                    );
-                    
+                    const nearbyParticipant = allParticipants.find(other => p.phone !== other.phone && getDistance(lat, lon, parseFloat(other.lat), parseFloat(other.lon)) < 20);
                     const whatsappNum = p.whatsapp || p.phone;
                     
                     let carpoolButton = '';
@@ -128,27 +131,34 @@
                         whatsappButton = `<a href="https://wa.me/972${whatsappNum.replace(/^0/,'')}?text=${message}" class="popup-btn whatsapp" target="_blank"><span class="material-symbols-outlined">chat</span>שלח וואטסאפ</a>`;
                     }
 
+                    const telLink = `tel:0${p.phone}`;
+
                     const popupContent = `
                         <div class="popup-box">
                             <div class="popup-name">${p.name}</div>
                             <div>${p.city}</div>
-                            <div class="popup-phone">📞 ${p.phone}</div>
+                            <div class="popup-phone">📞 0${p.phone}</div>
                             <div class="popup-btns">
-                                <a href="tel:${p.phone}" class="popup-btn phone" target="_blank"><span class="material-symbols-outlined">call</span>חייג</a>
+                                <a href="${telLink}" class="popup-btn phone" target="_blank"><span class="material-symbols-outlined">call</span>חייג</a>
                                 ${whatsappButton}
                                 ${carpoolButton}
                             </div>
                         </div>`;
                         
-                    L.marker([lat, lon]).bindPopup(popupContent).addTo(markers);
+                    L.marker([lat, lon], {icon: modernMarkerIcon}).bindPopup(popupContent).addTo(markers);
                 }
             });
         }
 
         document.addEventListener('DOMContentLoaded', () => {
+            if (SHEETDB_API_URL === 'הדבק כאן את קישור ה-API שלך מ-SheetDB') {
+                alert('אנא הכנס את קישור ה-API מ-SheetDB בקוד!');
+                return;
+            }
             loadData();
             
-            document.getElementById('search-input').addEventListener('input', (e) => {
+            const searchInput = document.getElementById('search-input');
+            searchInput.addEventListener('input', (e) => {
                 const query = e.target.value.toLowerCase();
                 const filtered = allParticipants.filter(p => 
                     p.name.toLowerCase().includes(query) ||
