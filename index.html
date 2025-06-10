@@ -23,9 +23,11 @@
         .search-box { display: flex; align-items: center; border-radius: var(--md-radius); padding: 0.75rem 1rem; border: 2px solid var(--md-border); }
         .search-icon { margin-left: 0.5rem; }
         .search-input { flex: 1; border: none; outline: none; background: transparent; font-size: 1rem; font-family: 'Heebo', sans-serif; }
-        .map-container { height: calc(100vh - 250px); margin: 0; border-radius: 0; }
+        .map-container { height: calc(100vh - 250px); margin: 0; border-radius: 0; position: relative; }
         #map { height: 100%; width: 100%; background-color: #e2e8f0; }
         .participant-count { position: absolute; top: 1rem; right: 1rem; background: rgba(255,255,255,0.9); padding: 0.5rem 1rem; border-radius: 20px; z-index: 401; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+        .fab { position: absolute; width: 60px; height: 60px; border-radius: 50%; border: none; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .reset-view-fab { bottom: 1rem; right: 1rem; background: linear-gradient(135deg, #42a5f5, #1976d2); }
         .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--md-surface); box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-radius: 12px; }
         .popup-box { padding: 1rem; text-align: center; font-size: 1rem; }
         .popup-name { font-weight: 700; font-size: 1.25rem; color: var(--md-primary); margin-bottom: 0.25rem; }
@@ -55,6 +57,7 @@
         <div class="map-container">
             <div id="map"></div>
             <div class="participant-count"><span id="participant-count">טוען...</span></div>
+            <button id="reset-view-fab" class="fab reset-view-fab" title="מרכז מפה"><span class="material-symbols-outlined">explore</span></button>
         </div>
     </div>
 
@@ -92,20 +95,52 @@
             markers.clearLayers();
             document.getElementById('participant-count').textContent = `${participantsToRender.length} משתתפים`;
             
-            participantsToRender.forEach(p => {
-                // --- כלי האבחון נמצא כאן ---
-                console.log(`בודק משתתף: ${p.name}, lat: [${p.lat}], lon: [${p.lon}]`);
+            function getDistance(lat1, lon1, lat2, lon2) {
+                if (typeof lat1 !== 'number' || typeof lon1 !== 'number' || typeof lat2 !== 'number' || typeof lon2 !== 'number') return Infinity;
+                const R = 6371;
+                const dLat = (lat2 - lat1) * Math.PI / 180;
+                const dLon = (lon2 - lon1) * Math.PI / 180;
+                const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            }
 
+            participantsToRender.forEach(p => {
                 const lat = parseFloat(p.lat);
                 const lon = parseFloat(p.lon);
                 
                 if (!isNaN(lat) && !isNaN(lon)) {
-                    // הקוד שמצייר את הסמן (אם הנתונים תקינים)
-                    const popupContent = `<div class="popup-box"><div class="popup-name">${p.name}</div><div>${p.city}</div></div>`;
+                    const nearbyParticipant = allParticipants.find(other => 
+                        p.phone !== other.phone && 
+                        getDistance(lat, lon, parseFloat(other.lat), parseFloat(other.lon)) < 20
+                    );
+                    
+                    const whatsappNum = p.whatsapp || p.phone;
+                    
+                    let carpoolButton = '';
+                    if (nearbyParticipant && typeof whatsappNum === 'string' && whatsappNum.length > 0) {
+                        const carpoolMessage = encodeURIComponent(`היי, ראיתי שאנחנו גרים קרוב. רוצה לתאם נסיעה משותפת למשלחת של מאיה?`);
+                        carpoolButton = `<a href="https://wa.me/972${whatsappNum.replace(/^0/,'')}?text=${carpoolMessage}" class="popup-btn carpool" target="_blank"><span class="material-symbols-outlined">directions_car</span>הצע נסיעה משותפת</a>`;
+                    }
+                    
+                    let whatsappButton = '';
+                    if (typeof whatsappNum === 'string' && whatsappNum.length > 0) {
+                        const message = encodeURIComponent(`היי ${p.name}, אני מהמשלחת של מאיה.`);
+                        whatsappButton = `<a href="https://wa.me/972${whatsappNum.replace(/^0/,'')}?text=${message}" class="popup-btn whatsapp" target="_blank"><span class="material-symbols-outlined">chat</span>שלח וואטסאפ</a>`;
+                    }
+
+                    const popupContent = `
+                        <div class="popup-box">
+                            <div class="popup-name">${p.name}</div>
+                            <div>${p.city}</div>
+                            <div class="popup-phone">📞 ${p.phone}</div>
+                            <div class="popup-btns">
+                                <a href="tel:${p.phone}" class="popup-btn phone" target="_blank"><span class="material-symbols-outlined">call</span>חייג</a>
+                                ${whatsappButton}
+                                ${carpoolButton}
+                            </div>
+                        </div>`;
+                        
                     L.marker([lat, lon]).bindPopup(popupContent).addTo(markers);
-                } else {
-                    // --- זו ההודעה שתראה אם הנתונים שבורים ---
-                    console.error(`שגיאת נתונים עבור ${p.name}: קואורדינטות לא תקינות.`);
                 }
             });
         }
@@ -113,8 +148,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             loadData();
             
-            const searchInput = document.getElementById('search-input');
-            searchInput.addEventListener('input', (e) => {
+            document.getElementById('search-input').addEventListener('input', (e) => {
                 const query = e.target.value.toLowerCase();
                 const filtered = allParticipants.filter(p => 
                     p.name.toLowerCase().includes(query) ||
@@ -122,6 +156,10 @@
                 );
                 renderMarkers(filtered);
             });
+
+            document.getElementById('reset-view-fab').onclick = () => {
+                map.setView([31.5, 34.75], 8);
+            };
         });
     </script>
 </body>
