@@ -29,7 +29,7 @@
         .search-icon { color: #64748b; margin-left: 0.5rem; }
         .search-input { flex: 1; border: none; outline: none; font-size: 1rem; color: var(--md-text); background: transparent; }
         .map-container { height: 60vh; margin: 1rem; border-radius: var(--md-radius); overflow: hidden; box-shadow: var(--md-shadow-lg); position: relative; }
-        #map { height: 100%; width: 100%; }
+        #map { height: 100%; width: 100%; background-color: #e2e8f0; }
         .participant-count { position: absolute; top: 1rem; right: 1rem; background: rgba(255,255,255,0.95); padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.875rem; font-weight: 500; color: var(--md-text); backdrop-filter: blur(10px); }
         .fab { position: absolute; width: 60px; height: 60px; border-radius: 50%; border: none; color: white; box-shadow: var(--md-shadow-lg); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; z-index: 1000; }
         .add-fab { bottom: 1rem; left: 1rem; background: linear-gradient(135deg, var(--md-success), #059669); }
@@ -81,7 +81,7 @@
         <div class="map-container">
             <div id="map"></div>
             <div class="participant-count"><span id="participant-count">טוען...</span></div>
-            <button id="add-user-btn" class="fab add-fab" style="display: none;" title="הוסף משתמש"><span class="material-symbols-outlined">add</span></button>
+            <button id="add-user-btn" class="fab add-fab" style="display: none;" title="הוסף משתתף"><span class="material-symbols-outlined">add</span></button>
             <button id="reset-view-fab" class="fab reset-view-fab" title="מרכז מפה"><span class="material-symbols-outlined">explore</span></button>
         </div>
     </div>
@@ -139,6 +139,7 @@
         const ToastManager = {
             show: (message, type = 'success') => {
                 const container = document.getElementById('toast-container');
+                if (!container) return;
                 const toast = document.createElement('div');
                 toast.className = `toast ${type}`;
                 toast.textContent = message;
@@ -189,7 +190,13 @@
                 if (!p.lat || !p.lon) return;
                 const whatsappNum = p.whatsapp || p.phone;
                 const message = encodeURIComponent(`היי ${p.name}, רוצה לתאם נסיעה משותפת?`);
-                const popupContent = `<div class="popup-box"><div class="popup-name">${p.name}</div><div class="popup-city">${p.city}</div><div class="popup-phone">📞 ${p.phone}</div><div class="popup-btns"><a href="tel:${p.phone}" class="popup-btn phone" target="_blank">חייג</a><a href="https://wa.me/972${whatsappNum.replace(/^0/,'')}?text=${message}" class="popup-btn whatsapp" target="_blank">שלח הודעה</a>${admin ? `<button class="popup-btn edit" onclick="editUser('${p.id}')">ערוך</button><button class="popup-btn delete" onclick="deleteUser('${p.id}')">מחק</button>` : ''}</div></div>`;
+                
+                let whatsappButton = '';
+                if (typeof whatsappNum === 'string' && whatsappNum.length > 0) {
+                    whatsappButton = `<a href="https://wa.me/972${whatsappNum.replace(/^0/,'')}?text=${message}" class="popup-btn whatsapp" target="_blank">שלח הודעה</a>`;
+                }
+
+                const popupContent = `<div class="popup-box"><div class="popup-name">${p.name}</div><div class="popup-city">${p.city}</div><div class="popup-phone">📞 ${p.phone}</div><div class="popup-btns"><a href="tel:${p.phone}" class="popup-btn phone" target="_blank">חייג</a>${whatsappButton}${admin ? `<button class="popup-btn edit" onclick="editUser('${p.id}')">ערוך</button><button class="popup-btn delete" onclick="deleteUser('${p.id}')">מחק</button>` : ''}</div></div>`;
                 L.marker([p.lat, p.lon], { icon: modernMarkerIcon }).bindPopup(popupContent).addTo(markers);
             });
         }
