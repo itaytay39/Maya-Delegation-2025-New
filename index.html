@@ -12,20 +12,18 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
     <style>
         :root { --md-primary: #6366f1; --md-secondary: #8b5cf6; --md-success: #10b981; --md-text: #1e293b; --md-border: #e2e8f0; --md-radius: 24px; }
-        html { box-sizing: border-box; }
-        *, *:before, *:after { box-sizing: inherit; }
         body { font-family: 'Heebo', sans-serif; margin: 0; background: #f8fafc; }
         #app-container { max-width: 480px; margin: 0 auto; background: var(--md-background); min-height: 100vh; }
-        .header { background: linear-gradient(135deg, var(--md-primary), var(--md-secondary)); padding: 2rem 1.5rem; text-align: center; color: white; }
-        .logo-maya { width: 120px; height: 120px; border-radius: 50%; margin: 0 auto 1rem; background: white; padding: 5px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+        .header { background: linear-gradient(135deg, var(--md-primary), var(--md-secondary)); padding: 1.5rem 1rem; text-align: center; color: white; }
+        .logo-maya { width: 100px; height: 100px; border-radius: 50%; margin: 0 auto 1rem; background: white; padding: 5px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
         .logo-maya img { width: 100%; height: 100%; object-fit: contain; border-radius: 50%; }
-        .title { font-size: 1.5rem; font-weight: 700; }
-        .subtitle { font-size: 1rem; opacity: 0.9; }
+        .title { font-size: 1.3rem; font-weight: 700; }
+        .subtitle { font-size: 0.9rem; opacity: 0.9; }
         .search-container { padding: 1rem; background: var(--md-surface); border-bottom: 1px solid var(--md-border); }
         .search-box { display: flex; align-items: center; border-radius: var(--md-radius); padding: 0.75rem 1rem; border: 2px solid var(--md-border); }
         .search-icon { margin-left: 0.5rem; }
-        .search-input { flex: 1; border: none; outline: none; background: transparent; font-size: 1rem; font-family: 'Heebo', sans-serif; }
-        .map-container { height: calc(100vh - 250px); margin: 0; border-radius: 0; position: relative; }
+        .search-input { flex: 1; border: none; outline: none; background: transparent; font-size: 1rem; }
+        .map-container { height: calc(100vh - 220px); position: relative; }
         #map { height: 100%; width: 100%; background-color: #e2e8f0; }
         .participant-count { position: absolute; top: 1rem; right: 1rem; background: rgba(255,255,255,0.9); padding: 0.5rem 1rem; border-radius: 20px; z-index: 401; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
         .reset-view-fab { position: absolute; bottom: 20px; right: 20px; width: 50px; height: 50px; border-radius: 50%; background: white; color: var(--md-primary); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
@@ -57,7 +55,7 @@
         </div>
         <div class="map-container">
             <div id="map"></div>
-            <div class="participant-count" style="display: none;"><span id="participant-count"></span></div>
+            <div class="participant-count"><span id="participant-count">טוען...</span></div>
             <button id="reset-view-fab" class="reset-view-fab" title="מרכז מפה"><span class="material-symbols-outlined">explore</span></button>
         </div>
     </div>
@@ -73,6 +71,8 @@
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
         const markers = L.markerClusterGroup();
         map.addLayer(markers);
+        
+        // --- שדרוג 1: הסמן המעוצב חזר ---
         const modernMarkerIcon = L.divIcon({ className: 'modern-marker', html: `<div style="width:30px;height:30px;background:#6366f1;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 4px 10px rgba(0,0,0,0.3);"></div>`, iconSize: [30, 30], iconAnchor: [15, 30], popupAnchor: [0, -30] });
 
         async function loadData() {
@@ -89,18 +89,13 @@
                 renderMarkers(allParticipants);
             } catch (error) {
                 console.error("Error fetching data:", error);
-                const countDiv = document.querySelector('.participant-count');
-                countDiv.textContent = 'שגיאה בטעינה';
-                countDiv.style.display = 'block';
+                document.getElementById('participant-count').textContent = 'שגיאה בטעינה';
             }
         }
 
         function renderMarkers(participantsToRender) {
             markers.clearLayers();
-            
-            const countDiv = document.querySelector('.participant-count');
-            countDiv.style.display = 'block';
-            countDiv.querySelector('span').textContent = `${participantsToRender.length} משתתפים`;
+            document.getElementById('participant-count').textContent = `${participantsToRender.length} משתתפים`;
             
             function getDistance(lat1, lon1, lat2, lon2) {
                 if (typeof lat1 !== 'number' || typeof lon1 !== 'number' || typeof lat2 !== 'number' || typeof lon2 !== 'number') return Infinity;
@@ -116,7 +111,11 @@
                 const lon = parseFloat(p.lon);
                 
                 if (!isNaN(lat) && !isNaN(lon)) {
-                    const nearbyParticipant = allParticipants.find(other => p.phone !== other.phone && getDistance(lat, lon, parseFloat(other.lat), parseFloat(other.lon)) < 20);
+                    const nearbyParticipant = allParticipants.find(other => 
+                        p.phone !== other.phone && 
+                        getDistance(lat, lon, parseFloat(other.lat), parseFloat(other.lon)) < 20
+                    );
+                    
                     const whatsappNum = p.whatsapp || p.phone;
                     
                     let carpoolButton = '';
@@ -145,6 +144,7 @@
                             </div>
                         </div>`;
                         
+                    // --- שדרוג 2: שימוש בסמן המעוצב ---
                     L.marker([lat, lon], {icon: modernMarkerIcon}).bindPopup(popupContent).addTo(markers);
                 }
             });
@@ -167,6 +167,7 @@
                 renderMarkers(filtered);
             });
 
+            // --- שדרוג 3: הוספת מאזין לכפתור איפוס המפה ---
             document.getElementById('reset-view-fab').onclick = () => {
                 map.setView([31.5, 34.75], 8);
             };
