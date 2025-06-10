@@ -118,9 +118,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-auth-compat.js"></script>
 
     <script>
-        // =======================================================
-        //          חלק 1: הגדרת החיבור ל-Firebase
-        // =======================================================
         const firebaseConfig = {
             apiKey: "AIzaSyD9Otp32sofmjDfI3aP31XskTxRuCF9_Cg",
             authDomain: "maya-delegation-to-uganda.firebaseapp.com",
@@ -135,9 +132,6 @@
     </script>
     
     <script>
-        // =======================================================
-        //          חלק 2: כל הלוגיקה של האפליקציה
-        // =======================================================
         let participants = [];
         let admin = false;
         let editId = null;
@@ -155,7 +149,9 @@
 
         const map = L.map('map').setView([31.5, 34.75], 8);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-        let markers = L.markerClusterGroup();
+        const markers = L.markerClusterGroup();
+        map.addLayer(markers);
+        
         const modernMarkerIcon = L.divIcon({ className: 'modern-marker', html: `<div style="width:36px;height:36px;background:linear-gradient(135deg, #6366f1, #8b5cf6);border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 6px 16px rgba(99,102,241,0.5);display:flex;align-items:center;justify-content:center;position:relative;"><div style="width:16px;height:16px;background:white;border-radius:50%;transform:rotate(45deg);"></div></div>`, iconSize: [36, 36], iconAnchor: [18, 36], popupAnchor: [0, -36] });
 
         async function loadDataFromFirestore() {
@@ -168,8 +164,7 @@
                     const firstName = data['שם פרטי'] || '';
                     const lastName = data['שם משפחה'] || '';
                     fetchedParticipants.push({
-                        id: doc.id,
-                        firstName, lastName,
+                        id: doc.id, firstName, lastName,
                         name: `${firstName} ${lastName}`.trim(),
                         city: data['עיר'] || 'לא צוין',
                         phone: data['מספר טלפון'] || '',
@@ -179,7 +174,6 @@
                     });
                 });
                 participants = fetchedParticipants;
-                localStorage.setItem('maya-participants', JSON.stringify(participants));
                 renderMarkers();
                 console.log(`✅ נטענו ${participants.length} משתתפים.`);
             } catch (error) {
@@ -198,10 +192,10 @@
                 const popupContent = `<div class="popup-box"><div class="popup-name">${p.name}</div><div class="popup-city">${p.city}</div><div class="popup-phone">📞 ${p.phone}</div><div class="popup-btns"><a href="tel:${p.phone}" class="popup-btn phone" target="_blank">חייג</a><a href="https://wa.me/972${whatsappNum.replace(/^0/,'')}?text=${message}" class="popup-btn whatsapp" target="_blank">שלח הודעה</a>${admin ? `<button class="popup-btn edit" onclick="editUser('${p.id}')">ערוך</button><button class="popup-btn delete" onclick="deleteUser('${p.id}')">מחק</button>` : ''}</div></div>`;
                 L.marker([p.lat, p.lon], { icon: modernMarkerIcon }).bindPopup(popupContent).addTo(markers);
             });
-            map.addLayer(markers);
         }
 
         window.editUser = (id) => {
+            if(!admin) return;
             const user = participants.find(p => p.id === id);
             if (!user) return;
             editId = id;
@@ -215,6 +209,7 @@
         };
 
         window.deleteUser = async (id) => {
+            if(!admin) return;
             const user = participants.find(p => p.id === id);
             if (confirm(`האם למחוק את ${user.name}?`)) {
                 try {
@@ -234,13 +229,6 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            // לוגיקת טעינה מתוקנת
-            const cachedData = localStorage.getItem('maya-participants');
-            if (cachedData) {
-                participants = JSON.parse(cachedData);
-                console.log(`📂 מציג ${participants.length} משתתפים מהזיכרון המקומי.`);
-                renderMarkers();
-            }
             loadDataFromFirestore();
 
             auth.onAuthStateChanged(user => {
@@ -263,6 +251,7 @@
             });
 
             document.getElementById('user-save').addEventListener('click', async () => {
+                if(!admin) return;
                 const firstName = document.getElementById('user-first-name').value.trim();
                 const lastName = document.getElementById('user-last-name').value.trim();
                 const city = document.getElementById('user-city').value.trim();
@@ -283,3 +272,17 @@
                     document.getElementById('user-form-modal').hidden = true;
                     editId = null;
                     loadDataFromFirestore();
+                } catch (e) { ToastManager.show('לא נמצא מיקום לעיר.', 'error'); }
+            });
+            
+            document.getElementById('admin-login-btn').onclick = () => { document.getElementById('admin-login-modal').hidden = false; };
+            document.getElementById('admin-cancel').onclick = () => { document.getElementById('admin-login-modal').hidden = true; };
+            document.getElementById('admin-logout-btn').onclick = () => auth.signOut();
+            document.getElementById('add-user-btn').onclick = () => { if(!admin) return; editId = null; document.getElementById('user-form-modal').querySelectorAll('input').forEach(i => i.value = ''); document.getElementById('user-form-modal').hidden = false; };
+            document.getElementById('user-cancel').onclick = () => { document.getElementById('user-form-modal').hidden = true; };
+            document.getElementById('search-input').oninput = function() { const val = this.value.trim().toLowerCase(); renderMarkers(val ? participants.filter(p => p.name.toLowerCase().includes(val)) : participants); };
+            document.getElementById('reset-view-fab').onclick = () => map.setView([31.5, 34.75], 8);
+        });
+    </script>
+</body>
+</html>
